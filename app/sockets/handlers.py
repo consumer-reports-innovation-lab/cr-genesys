@@ -1,6 +1,6 @@
 import socketio
 
-from app.guards.socket_auth import get_websocket_user, websocket_auth_required
+from guards.socket_auth import get_websocket_user, websocket_auth_required
 
 # Create Socket.IO server instance
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')

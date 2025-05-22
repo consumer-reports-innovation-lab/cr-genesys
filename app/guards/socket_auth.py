@@ -2,8 +2,8 @@ from typing import Optional, Tuple
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models.user import Session as SessionModel, User
+from utils.db import get_db
+from models import Session as SessionModel, User
 
 async def get_websocket_user(environ, sio) -> Tuple[Optional[User], Optional[SessionModel]]:
     """
