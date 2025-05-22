@@ -1,0 +1,21 @@
+model Chat {
+  id        String     @id @default(cuid())
+  title     String?
+  status    ChatStatus @default(OPEN)
+  messages  Message[]
+  user      User       @relation(fields: [userId], references: [id])
+  userId    String     @map("user_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  // Genesys Open Messaging fields
+  genesysOpenMessageSessionId String? @map("genesys_open_message_session_id")
+  genesysOpenMessageActive    Boolean @default(false) @map("genesys_open_message_active")
+
+  @@map("chats")
+}
+
+enum ChatStatus {
+  OPEN
+  CLOSED
+}

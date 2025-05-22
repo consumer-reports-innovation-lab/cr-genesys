@@ -1,0 +1,62 @@
+services:
+  web:
+    build: ./app
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/code
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_rN09pGcFZLzq@ep-damp-cake-a5gygi9h-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+      - GENESYS_CLOUD_CLIENT_ID=***REMOVED***
+      - GENESYS_CLOUD_CLIENT_SECRET=***REMOVED***
+      - MAILCHIMP_TRANSACTIONAL_API_KEY=***REMOVED***
+      - OPENAI_API_KEY=***REMOVED***
+
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - db
+
+  nextjs:
+    build: ./nextjs
+    container_name: nextjs_app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./nextjs:/app
+    working_dir: /app
+    command: sh -c "npm install --force && npm run dev"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - INTERNAL_API_URL=http://web:8000 # For server-to-server calls within Docker
+      - NEXT_PUBLIC_API_URL=http://localhost:8000 # For client-side calls (browser to host-mapped port)
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
