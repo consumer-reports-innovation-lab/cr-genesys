@@ -1,89 +1,201 @@
-import { Socket } from "socket.io-client";
-import io from "socket.io-client";
+// Import the socket.io-client library
+import io from 'socket.io-client';
 
-// Define the SocketClient type for export
-export type SocketClient = typeof Socket;
+// Define the response interface for socket operations
+export interface SocketResponse<T = unknown> {
+  status: 'success' | 'error';
+  message?: string;
+  data?: T;
+}
+
+// Define the socket type
+export type SocketType = ReturnType<typeof io>;
 
 // Create a singleton socket instance
-let socket: ReturnType<typeof io> | null = null;
+let socket: SocketType | null = null;
 
-// Initialize the socket connection
-export const initSocket = (
-  url: string = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000"
-) => {
+/**
+ * Initialize the WebSocket connection
+ * @param url Optional WebSocket server URL
+ * @returns The socket instance
+ */
+/**
+ * Initialize the WebSocket connection
+ * @param url Optional WebSocket server URL
+ * @returns The socket instance
+ */
+/**
+ * Initialize the WebSocket connection
+ * @param url Optional WebSocket server URL
+ * @returns The socket instance
+ */
+/**
+ * Initialize the WebSocket connection
+ * @param url Optional WebSocket server URL
+ * @returns The socket instance
+ */
+/**
+ * Initialize the WebSocket connection
+ * @param url Optional WebSocket server URL
+ * @returns The socket instance
+ */
+export const initSocket = (url?: string): SocketType | null => {
   if (!socket) {
-    socket = io(url, {
-      transports: ["websocket", "polling"], // Support both transport methods
-      reconnection: true,                   // Enable reconnection
-      reconnectionAttempts: 5,              // Number of reconnection attempts
-      reconnectionDelay: 1000,              // Initial delay before reconnection (ms)
-      timeout: 20000,                       // Connection timeout (ms)
-      autoConnect: true,                    // Auto connect on initialization
-    });
+    const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+    const socketUrl = url || (typeof envSocketUrl === 'string' ? envSocketUrl.replace('http', 'ws') : undefined) || 'ws://localhost:8000';
+    
+    try {
+      socket = io(socketUrl, {
+        path: '/ws/socket.io',
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 20000,
+        autoConnect: true,
+      });
 
-    // Connection event handlers
-    socket.on("connect", () => {
-      console.log("Connected to server with ID:", socket?.id);
-    });
+      socket.on('connect', () => {
+        console.log('Connected to WebSocket server with ID:', socket?.id);
+      });
 
-    socket.on("disconnect", (reason: string) => {
-      console.log("Disconnected from server:", reason);
-    });
+      socket.on('disconnect', (reason: string) => {
+        console.log('Disconnected from WebSocket server:', reason);
+      });
 
-    socket.on("connect_error", (error: Error) => {
-      console.error("Connection error:", error.message);
-    });
-
-    // Default event handlers for common events
-    socket.on("message", (data: Record<string, unknown>) => {
-      console.log("Received message:", data);
-    });
-
-    socket.on("notification", (data: Record<string, unknown>) => {
-      console.log("Notification received:", data);
-    });
+      socket.on('connect_error', (error: Error) => {
+        console.error('WebSocket connection error:', error);
+      });
+    } catch (error) {
+      console.error('Failed to initialize WebSocket:', error);
+      throw error;
+    }
   }
+  
   return socket;
 };
 
-// Get the socket instance
-export const getSocket = (): ReturnType<typeof io> | null => {
+/**
+ * Get the current socket instance
+ * @returns The socket instance or null if not initialized
+ */
+export const getSocket = (): SocketType | null => {
   return socket;
 };
 
-// Disconnect the socket
-export const disconnectSocket = () => {
+/**
+ * Disconnect the WebSocket connection
+ */
+export const disconnectSocket = (): void => {
   if (socket) {
     socket.disconnect();
     socket = null;
+    console.log('WebSocket connection closed');
   }
 };
 
-// Helper functions for common socket operations
-
-// Send a message to the server
-export const sendMessage = (message: string) => {
-  if (socket) {
-    socket.emit("sendMessage", { text: message, timestamp: new Date() });
-  } else {
-    console.error("Socket not connected");
+/**
+ * Send a chat message
+ * @param chatId The ID of the chat
+ * @param content The message content
+ * @returns A promise that resolves with the server response
+ */
+export const sendMessage = async (
+  chatId: string,
+  content: string
+): Promise<SocketResponse<{ message_id: string }>> => {
+  const socket = getSocket();
+  if (!socket) {
+    return { status: 'error', message: 'Socket not initialized' };
   }
+
+  return new Promise<SocketResponse<{ message_id: string }>>((resolve) => {
+    socket.emit(
+      'message',
+      { chat_id: chatId, content },
+      (response: SocketResponse<{ message_id: string }>) => {
+        resolve(response);
+      }
+    );
+  });
 };
 
-// Join a room
-export const joinRoom = (roomName: string) => {
-  if (socket) {
-    socket.emit("joinRoom", { room: roomName });
-  } else {
-    console.error("Socket not connected");
+/**
+ * Join a chat room
+ * @param chatId The ID of the chat room to join
+ * @returns A promise that resolves with the server response
+ */
+export const joinRoom = async (chatId: string): Promise<SocketResponse<{ room: string }>> => {
+  const socket = getSocket();
+  if (!socket) {
+    return { status: 'error', message: 'Socket not initialized' };
   }
+
+  return new Promise<SocketResponse<{ room: string }>>((resolve) => {
+    socket.emit(
+      'join',
+      { chat_id: chatId },
+      (response: SocketResponse<{ room: string }>) => {
+        if (response.status === 'success') {
+          console.log(`Joined chat room: ${chatId}`);
+        } else {
+          console.error(`Failed to join room ${chatId}:`, response.message);
+        }
+        resolve(response);
+      }
+    );
+  });
 };
 
-// Leave a room
-export const leaveRoom = (roomName: string) => {
-  if (socket) {
-    socket.emit("leaveRoom", { room: roomName });
-  } else {
-    console.error("Socket not connected");
+/**
+ * Leave a chat room
+ * @param chatId The ID of the chat room to leave
+ * @returns A promise that resolves with the server response
+ */
+export const leaveRoom = async (chatId: string): Promise<SocketResponse> => {
+  const socket = getSocket();
+  if (!socket) {
+    return { status: 'error', message: 'Socket not initialized' };
   }
+
+  return new Promise<SocketResponse>((resolve) => {
+    socket.emit(
+      'leave',
+      { chat_id: chatId },
+      (response: SocketResponse) => {
+        if (response.status === 'success') {
+          console.log(`Left chat room: ${chatId}`);
+        } else {
+          console.error(`Failed to leave room ${chatId}:`, response.message);
+        }
+        resolve(response);
+      }
+    );
+  });
+};
+
+/**
+ * Emit a custom event with acknowledgment
+ * @param event The event name
+ * @param data The data to send
+ * @returns A promise that resolves with the server response
+ */
+export const emitWithAck = async <T = unknown>(
+  event: string,
+  data: unknown = {}
+): Promise<SocketResponse<T>> => {
+  const socket = getSocket();
+  if (!socket) {
+    return { status: 'error', message: 'Socket not initialized' };
+  }
+
+  return new Promise<SocketResponse<T>>((resolve) => {
+    socket.emit(
+      event,
+      data,
+      (response: SocketResponse<T>) => {
+        resolve(response);
+      }
+    );
+  });
 };

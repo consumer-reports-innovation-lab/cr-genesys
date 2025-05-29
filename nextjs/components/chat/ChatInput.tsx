@@ -8,9 +8,10 @@ import { useSession } from "next-auth/react";
 interface ChatInputProps {
   chatId: string;
   onNewMessage: () => void;
+  disabled?: boolean;
 }
 
-export function ChatInput({ chatId, onNewMessage }: ChatInputProps) {
+export function ChatInput({ chatId, onNewMessage, disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
@@ -39,10 +40,10 @@ export function ChatInput({ chatId, onNewMessage }: ChatInputProps) {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Type your message..."
-        disabled={loading}
+        disabled={loading || disabled}
         className="flex-1"
       />
-      <Button type="submit" disabled={loading || !message.trim()}>
+      <Button type="submit" disabled={loading || !message.trim() || disabled}>
         Send
       </Button>
     </form>

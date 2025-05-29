@@ -3,6 +3,7 @@
  */
 
 import * as api from "@/utils/api";
+import type { Message } from "@prisma/client";
 import { Session } from "next-auth";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
@@ -42,7 +43,10 @@ export function useApiCall<T, P extends unknown[]>(
  * Hook for fetching user chats
  */
 export function useUserChats() {
-  return useApiCall(api.getUserChats);
+  return useApiCall<
+    { chat: api.ChatWithMessages; latestMessage: Message }[],
+    []
+  >(api.getUserChats);
 }
 
 /**
@@ -56,8 +60,8 @@ export function useCreateChat() {
  * Hook for fetching a specific chat
  */
 export function useChat() {
-  return useApiCall<api.Chat, [string]>((session, chatId) =>
-    api.getChat(chatId, session)
+  return useApiCall<{ chat: api.ChatWithMessages }, [string]>(
+    (session, chatId) => api.getChat(chatId, session)
   );
 }
 
@@ -65,7 +69,7 @@ export function useChat() {
  * Hook for fetching chat messages
  */
 export function useChatMessages() {
-  return useApiCall<api.Message[], [string]>((session, chatId) =>
+  return useApiCall<Message[], [string]>((session, chatId) =>
     api.getChatMessages(chatId, session)
   );
 }
@@ -74,7 +78,7 @@ export function useChatMessages() {
  * Hook for creating a chat message
  */
 export function useCreateChatMessage() {
-  return useApiCall<api.Message, [string, string, string]>(
+  return useApiCall<Message, [string, string, string]>(
     (session, chatId, systemPrompt, question) =>
       api.createChatMessage(chatId, systemPrompt, question, session)
   );

@@ -31,26 +31,30 @@ def get_access_token():
 # === Open Messaging API Functions ===
 
 def send_open_message(
-    user_token: str,
+    from_address: str,
+    to_address: str,
     message_content: str,
-    message_type: str = "Text",
-    deployment_id: str = None
+    deployment_id: str = None,
+    use_existing_conversation: bool = False
 ):
     """
-    Sends a message to Genesys Open Messaging using the 'token' to identify the user.
+    Sends an agentless outbound message via Genesys Open Messaging (agentless API).
+    Uses /api/v2/conversations/messages/agentless endpoint.
+    See: https://developer.genesys.cloud/commdigital/digital/openmessaging/outboundMessages
 
     Args:
-        user_token (str): Unique identifier for the user (you define this)
+        from_address (str): The sender address (e.g., business phone/email/ID)
+        to_address (str): The recipient address (e.g., customer phone/email/ID)
         message_content (str): The message body
-        message_type (str): "Text" (default) or other supported types
         deployment_id (str, optional): Open Messaging deployment ID. Defaults to global setting.
+        use_existing_conversation (bool, optional): Attach to existing conversation if possible. Default False.
 
     Returns:
         dict: Response from Genesys API
     """
     deployment_id = deployment_id or GENESYS_DEPLOYMENT_ID
     access_token = get_access_token()
-    url = f"{BASE_URL}/api/v2/conversations/messages"
+    url = f"{BASE_URL}/api/v2/conversations/messages/agentless"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -58,19 +62,18 @@ def send_open_message(
     }
 
     payload = {
+        "fromAddress": from_address,
+        "toAddress": to_address,
+        "textBody": message_content,
         "deploymentId": deployment_id,
-        "token": user_token,
-        "message": {
-            "type": message_type,
-            "text": message_content
-        }
+        "useExistingConversation": use_existing_conversation
     }
 
-    logger.info(f"Sending Open Messaging message: {message_content[:50]}...")
+    logger.info(f"Sending agentless Open Messaging message: {message_content[:50]}...")
     response = requests.post(url, headers=headers, json=payload)
 
-    if response.status_code != 202:
-        logger.error(f"Error sending message: {response.status_code} - {response.text}")
+    if response.status_code not in (200, 202):
+        logger.error(f"Error sending agentless message: {response.status_code} - {response.text}")
         raise Exception(f"Send failed: {response.text}")
 
     return response.json() if response.content else {}

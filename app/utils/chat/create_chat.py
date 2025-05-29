@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy.orm import Session
 from models import Chat
 import uuid
@@ -17,11 +18,14 @@ def create_chat(db: Session, user_id: str, title: str = None) -> Chat:
     # Generate a unique chat ID
     chat_id = str(uuid.uuid4())
     
-    # Create new chat
+    # Create new chat with current timestamp for updated_at
+    current_time = datetime.utcnow()
     new_chat = Chat(
         id=chat_id,
         user_id=user_id,
-        title=title
+        title=title,
+        created_at=current_time,
+        updated_at=current_time
     )
     
     # Add and commit the new chat

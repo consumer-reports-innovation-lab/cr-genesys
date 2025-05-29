@@ -2,6 +2,7 @@
  * API utility functions for communicating with the FastAPI backend
  */
 
+import type { Chat, Message } from "@prisma/client";
 import { Session } from "next-auth";
 
 // API Configuration
@@ -43,27 +44,11 @@ if (IS_SERVER) {
 
 const API_BASE_URL = determinedApiBaseUrl;
 
-// Types based on the FastAPI models
-export interface Chat {
-  id: string;
-  title: string | null;
-  status: "OPEN" | "CLOSED";
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-  latestMessage?: Message;
+// Extend Prisma types with any additional fields we need
+export type ChatWithMessages = Chat & {
   messages?: Message[];
-}
-
-export interface Message {
-  id: string;
-  content: string;
-  chatId: string;
-  isSystem: boolean;
-  isMarkdown: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+  latestMessage?: Message;
+};
 
 // Custom error types for better error handling
 export class ApiError extends Error {
@@ -120,7 +105,6 @@ function getAuthHeader(session: Session | null): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
-  console.log(session);
   if (session) {
     headers["Authorization"] = `Bearer ${session.accessToken}`;
   }
@@ -156,14 +140,13 @@ async function fetchWithRetry<T>(
  */
 export async function getUserChats(
   session: Session | null
-): Promise<{ chat: Chat; latestMessage: Message }[]> {
-  return fetchWithRetryAndCamel<{ chat: Chat; latestMessage: Message }[]>(
-    `${API_BASE_URL}/chats`,
-    {
-      method: "GET",
-      headers: getAuthHeader(session),
-    }
-  );
+): Promise<{ chat: ChatWithMessages; latestMessage: Message }[]> {
+  return fetchWithRetryAndCamel<
+    { chat: ChatWithMessages; latestMessage: Message }[]
+  >(`${API_BASE_URL}/chats`, {
+    method: "GET",
+    headers: getAuthHeader(session),
+  });
 }
 
 /**
@@ -202,21 +185,42 @@ async function fetchWithRetryAndCamel<T>(
   return res;
 }
 
-export async function createChat(session: Session | null): Promise<Chat> {
-  return fetchWithRetryAndCamel<Chat>(`${API_BASE_URL}/chats`, {
+export async function createChat(
+  session: Session | null
+): Promise<ChatWithMessages> {
+  return fetchWithRetryAndCamel<ChatWithMessages>(`${API_BASE_URL}/chats`, {
     method: "POST",
     headers: getAuthHeader(session),
   });
 }
 
+interface GetChatOptions {
+  includeChatHistory?: boolean;
+}
+
 /**
- * Get a specific chat by ID with all its messages
+ * Get a specific chat by ID
+ * @param chatId - The ID of the chat to retrieve
+ * @param session - The current user session
+ * @param options - Optional parameters
+ * @param options.includeChatHistory - Whether to include chat messages in the response (default: true)
  */
 export async function getChat(
   chatId: string,
-  session: Session | null
-): Promise<Chat> {
-  return fetchWithRetryAndCamel<Chat>(`${API_BASE_URL}/chats/${chatId}`, {
+  session: Session | null,
+  { includeChatHistory }: GetChatOptions = {}
+): Promise<{ chat: ChatWithMessages }> {
+  const url = new URL(`${API_BASE_URL}/chats/${chatId}`);
+
+  // Only append the parameter if it's explicitly set to true or false
+  if (includeChatHistory !== undefined) {
+    url.searchParams.append(
+      "include_chat_history",
+      includeChatHistory.toString()
+    );
+  }
+
+  return fetchWithRetryAndCamel<{ chat: ChatWithMessages }>(url.toString(), {
     method: "GET",
     headers: getAuthHeader(session),
   });

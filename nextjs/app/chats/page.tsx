@@ -5,30 +5,64 @@ import { Card } from "@/components/ui/card";
 import { useChats, useCreateChat } from "@/utils/api-hooks";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function ChatListPage() {
   const { data: chats, isLoading, error, isError } = useChats();
   const createChatMutation = useCreateChat();
 
+  const [isCreating, setIsCreating] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+
   const handleCreateChat = async () => {
     try {
+      setIsCreating(true);
+      setShowOverlay(true);
       const newChat = await createChatMutation.mutateAsync();
       // Navigate to the new chat
       window.location.href = `/chats/${newChat.id}`;
     } catch (error) {
       console.error("Failed to create chat:", error);
+      setIsCreating(false);
+      setShowOverlay(false);
     }
   };
 
+  // Clean up loading state if component unmounts
+  useEffect(() => {
+    return () => {
+      setIsCreating(false);
+      setShowOverlay(false);
+    };
+  }, []);
+
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
+    <div className="relative max-w-2xl mx-auto py-8 px-4 min-h-screen">
+      {/* Loading Overlay */}
+      {(isCreating || showOverlay) && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-4 p-8 bg-card rounded-lg shadow-lg">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="text-lg font-medium">Creating new chat...</p>
+          </div>
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Chats</h1>
         <Button
           onClick={handleCreateChat}
-          disabled={createChatMutation.isPending}
+          disabled={createChatMutation.isPending || isCreating}
+          className="relative"
         >
-          {createChatMutation.isPending ? "Creating..." : "New Chat"}
+          {isCreating ? (
+            <>
+              <span className="opacity-0">New Chat</span>
+              <Loader2 className="h-4 w-4 animate-spin absolute" />
+            </>
+          ) : (
+            "New Chat"
+          )}
         </Button>
       </div>
 
@@ -64,9 +98,17 @@ export default function ChatListPage() {
             </p>
             <Button
               onClick={handleCreateChat}
-              disabled={createChatMutation.isPending}
+              disabled={createChatMutation.isPending || isCreating}
+              className="relative"
             >
-              Start a new conversation
+              {isCreating ? (
+                <>
+                  <span className="opacity-0">Creating...</span>
+                  <Loader2 className="h-4 w-4 animate-spin absolute" />
+                </>
+              ) : (
+                "Start a new conversation"
+              )}
             </Button>
           </div>
         )}

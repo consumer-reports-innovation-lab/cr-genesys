@@ -99,12 +99,20 @@ def create_new_chat(current_user=Depends(auth_guard), db=Depends(get_db)):
 
 
 @app.get("/chats/{chat_id}")
-def get_chat(chat_id: str, _=Depends(chat_ownership_guard), db=Depends(get_db)):
+def get_chat(
+    chat_id: str, 
+    include_chat_history: bool = True,
+    _=Depends(chat_ownership_guard), 
+    db=Depends(get_db)
+):
     """
-    Get a chat by id for the authenticated user, including all messages (oldest to newest).
+    Get a chat by id for the authenticated user.
+    
+    Args:
+        chat_id: The ID of the chat to retrieve
+        include_chat_history: Whether to include chat messages in the response (default: True)
     """
-    chat_info = get_chat_by_id(db, chat_id)
-    # Optionally serialize chat and message objects here
+    chat_info = get_chat_by_id(db, chat_id, include_messages=include_chat_history)
     return chat_info
 
 
@@ -114,6 +122,7 @@ def get_chat_messages(chat_id: str, _=Depends(chat_ownership_guard), db=Depends(
     Get all messages for a specific chat, ordered by creation time.
     """
     messages = _get_chat_messages_from_db(db, chat_id)
+    return messages
 
 @app.post("/chats/{chat_id}/messages")
 async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, current_user=Depends(chat_ownership_guard), db=Depends(get_db)):

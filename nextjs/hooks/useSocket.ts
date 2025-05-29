@@ -1,4 +1,11 @@
-import { disconnectSocket, initSocket, joinRoom, leaveRoom, sendMessage, type SocketClient } from "@/lib/socket";
+import {
+  disconnectSocket,
+  initSocket,
+  joinRoom,
+  leaveRoom,
+  sendMessage,
+} from "@/lib/socket";
+import type { SocketType } from "@/lib/socket";
 import { useCallback, useEffect, useRef } from "react";
 
 interface UseSocketProps {
@@ -16,7 +23,7 @@ export const useSocket = ({
   events = {},
   url,
 }: UseSocketProps = {}) => {
-  const socketRef = useRef<SocketClient | null>(null);
+  const socketRef = useRef<SocketType | null>(null);
 
   // Initialize socket connection
   useEffect(() => {
@@ -70,9 +77,9 @@ export const useSocket = ({
   }, []);
 
   // Helper functions that use the socket instance
-  const sendMessageToServer = useCallback((message: string) => {
+  const sendMessageToServer = useCallback((chatId: string, message: string) => {
     if (socketRef.current) {
-      sendMessage(message);
+      sendMessage(chatId, message);
     } else {
       console.error("Socket not connected");
     }

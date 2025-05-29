@@ -117,8 +117,6 @@ const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
-      console.log(token);
-      console.log(session);
       if (session.user && token) {
         session.user.id = token.id as string;
         session.deviceId = token.deviceId as string;

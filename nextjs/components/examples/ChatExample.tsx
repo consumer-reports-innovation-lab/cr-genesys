@@ -155,8 +155,8 @@ export default function ChatExample() {
           <h2 className="text-xl font-semibold mb-4">
             {chatLoading
               ? "Loading chat..."
-              : currentChat
-              ? currentChat.title || "Untitled Chat"
+              : currentChat?.chat
+              ? currentChat.chat.title || "Untitled Chat"
               : "Select a Chat"}
           </h2>
 
