@@ -10,14 +10,22 @@ async def get_websocket_user(environ, sio) -> Tuple[Optional[User], Optional[Ses
     Authenticate WebSocket connection using session token from headers.
     Returns (user, session) tuple if authenticated, (None, None) otherwise.
     """
-    # Get session token from headers
-    headers = dict(environ.get('asgi.scope', {}).get('headers', []))
+    # Get session token from headers or auth field
+    scope = environ.get('asgi.scope', {})
+    headers = dict(scope.get('headers', []))
     auth_header = headers.get(b'authorization', b'').decode('latin1')
-    
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return None, None
-        
-    token = auth_header.split(' ')[1]
+    token = None
+
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+    else:
+        # Try to get token from Socket.IO 'auth' payload
+        auth_payload = scope.get('auth')
+        if auth_payload and isinstance(auth_payload, dict):
+            auth_token = auth_payload.get('token')
+            if auth_token and auth_token.startswith('Bearer '):
+                token = auth_token.split(' ')[1]
+
     if not token:
         return None, None
     

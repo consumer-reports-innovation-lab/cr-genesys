@@ -13,6 +13,8 @@ from utils.chat.get_chat_messages import get_chat_messages
 from utils.adaptors.convert_messages_to_chat_history import convert_messages_to_chat_history
 from utils.validators.is_markdown import is_markdown
 from purecloud_client import send_open_message, GENESYS_DEPLOYMENT_ID
+from utils.chat.initialize_genesys_session import initialize_genesys_session
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -91,9 +93,7 @@ def check_genesys_session(data: CheckGenesysSessionRequest, db: Session) -> Gene
 def create_genesys_session(data: CreateGenesysSessionRequest, db: Session) -> GenesysSessionResponse:
     """
     Create a new Genesys Open Messaging session for a chat
-    """
-    from utils.chat.initialize_genesys_session import initialize_genesys_session
-    
+    """    
     # First check if there's already a session
     check_result = check_genesys_session(CheckGenesysSessionRequest(chat_id=data.chat_id), db)
     if check_result.success:

@@ -15,6 +15,7 @@ interface UseSocketProps {
     [eventName: string]: (...args: unknown[]) => void;
   };
   url?: string;
+  token?: string;
 }
 
 export const useSocket = ({
@@ -22,13 +23,14 @@ export const useSocket = ({
   onDisconnect,
   events = {},
   url,
+  token,
 }: UseSocketProps = {}) => {
   const socketRef = useRef<SocketType | null>(null);
 
   // Initialize socket connection
   useEffect(() => {
-    // Initialize socket with optional custom URL
-    const socket = initSocket(url);
+    // Initialize socket with optional custom URL and token
+    const socket = initSocket(url, token);
     socketRef.current = socket;
 
     if (!socket) return;

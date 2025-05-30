@@ -39,7 +39,7 @@ let socket: SocketType | null = null;
  * @param url Optional WebSocket server URL
  * @returns The socket instance
  */
-export const initSocket = (url?: string): SocketType | null => {
+export const initSocket = (url?: string, token?: string): SocketType | null => {
   if (!socket) {
     const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
     const socketUrl = url || (typeof envSocketUrl === 'string' ? envSocketUrl.replace('http', 'ws') : undefined) || 'ws://localhost:8000';
@@ -53,6 +53,7 @@ export const initSocket = (url?: string): SocketType | null => {
         reconnectionDelay: 1000,
         timeout: 20000,
         autoConnect: true,
+        auth: token ? { token: `Bearer ${token}` } : undefined,
       });
 
       socket.on('connect', () => {
