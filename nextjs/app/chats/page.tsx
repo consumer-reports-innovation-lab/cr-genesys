@@ -121,7 +121,7 @@ export default function ChatListPage() {
             <div>
               <div className="font-semibold">
                 {chat.title ||
-                  (chat.id ? `Chat #${chat.id.substring(0, 8)}` : "Chat")}
+                  (chat.id && typeof chat.id === 'string' ? `Chat #${chat.id.substring(0, 8)}` : "Chat")}
               </div>
               <div className="text-muted-foreground text-sm truncate max-w-xs">
                 {latestMessage?.content || "No messages yet"}

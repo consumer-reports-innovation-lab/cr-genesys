@@ -1,6 +1,6 @@
 import { saltAndHashPassword } from "@/utils/password";
 import { PrismaClient } from "@prisma/client";
-import type { NextAuthConfig, Session, User } from "next-auth";
+import type { Session, User } from "next-auth";
 
 // Extend NextAuth Session type to include deviceId
 declare module "next-auth" {
@@ -13,6 +13,15 @@ import NextAuth from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createSession } from "./session";
+
+// Simple UUID generator function
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 // Define custom session type
 declare module "next-auth" {
@@ -28,12 +37,12 @@ declare module "next-auth" {
 }
 
 // Create auth config
-const authConfig: NextAuthConfig = {
+const authConfig = {
   pages: {
     signIn: "/login",
   },
   session: {
-    strategy: "jwt", // Always use JWT for simplicity
+    strategy: "jwt" as const, // Always use JWT for simplicity
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
@@ -95,11 +104,11 @@ const authConfig: NextAuthConfig = {
           token.id = user.id;
           token.email = user.email;
           token.name = user.name;
-          token.deviceId = `web-${crypto.randomUUID()}`;
+          token.deviceId = `web-${generateUUID()}`;
 
           if (token.id) {
             // Use token.jti as sessionToken if available, otherwise generate one
-            const sessionToken = crypto.randomUUID();
+            const sessionToken = generateUUID();
             const db = new PrismaClient();
             await createSession(
               db,

@@ -1,12 +1,14 @@
-import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { allowedRoutes } from "@/consts";
 
-export default auth((req) => {
-  // If not authenticated, redirect to login page (except for /login and /signup)
-  if (!req.auth) {
-    // Import allowedRoutes from consts
-    // (already imported at the top)
+export default function middleware(req: NextRequest) {
+  // Check if user is authenticated by looking for the next-auth session token
+  const sessionToken = req.cookies.get("next-auth.session-token")?.value || 
+                      req.cookies.get("__Secure-next-auth.session-token")?.value;
+  
+  // If not authenticated, redirect to login page (except for allowed routes)
+  if (!sessionToken) {
     if (!allowedRoutes.includes(req.nextUrl.pathname)) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", req.url);
@@ -14,7 +16,7 @@ export default auth((req) => {
     }
   }
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],

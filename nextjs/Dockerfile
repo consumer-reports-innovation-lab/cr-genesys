@@ -1,23 +1,18 @@
-# Install dependencies only when needed
-FROM node:23-alpine AS deps
+# Development image for Next.js
+FROM node:23-alpine
 WORKDIR /app
-COPY package.json ./
-RUN npm install
 
+# Copy package files
+COPY package*.json ./
 
-# Rebuild the source code only when needed
-FROM node:23-alpine AS builder
-WORKDIR /app
-COPY . .
+# Install dependencies
 RUN npm install --legacy-peer-deps
-RUN npm run build
 
-# Production image, copy all the files and run next
-FROM node:23-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV production
+# Copy source code
+COPY . .
 
-COPY --from=builder /app .
-
+# Expose port
 EXPOSE 3000
+
+# Start development server
 CMD ["npm", "run", "dev"]

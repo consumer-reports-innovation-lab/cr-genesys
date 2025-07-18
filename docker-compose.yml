@@ -49,12 +49,14 @@ services:
     volumes:
       - ./nextjs:/app
     working_dir: /app
-    command: sh -c "npm install --force && npm run dev"
+    command: sh -c "npm run dev"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - INTERNAL_API_URL=http://web:8000 # For server-to-server calls within Docker
       - NEXT_PUBLIC_API_URL=http://localhost:8000 # For client-side calls (browser to host-mapped port)
+      - NEXTAUTH_SECRET=***REMOVED***
+      - NEXTAUTH_URL=http://localhost:3000
     depends_on:
       - web
 
