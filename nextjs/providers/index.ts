@@ -1,1 +1,1 @@
-export * from './chat-socket-provider';
+export { ChatSocketProvider } from './chat-socket-provider';
