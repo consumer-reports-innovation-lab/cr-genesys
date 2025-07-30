@@ -151,12 +151,20 @@ export default function ChatPage() {
           ) : (
             <ChatHistory
               messages={
-                messages?.map((msg) => ({
-                  id: msg.id,
-                  content: msg.content,
-                  sender: msg.isSystem ? "system" : "user",
-                  createdAt: new Date(msg.createdAt),
-                })) || []
+                messages?.map((msg) => {
+                  // Safeguard against incomplete message data
+                  if (!msg || !msg.id || !msg.content) {
+                    console.warn('Incomplete message data:', msg);
+                    return null;
+                  }
+                  
+                  return {
+                    id: msg.id,
+                    content: msg.content || '',
+                    sender: msg.isSystem ? "system" : "user",
+                    createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+                  };
+                }).filter(Boolean) || []
               }
             />
           )}
@@ -164,7 +172,7 @@ export default function ChatPage() {
         {/* Pass fetchMessages down as onNewMessage and disable if chat is closed */}
         <ChatInput
           chatId={chatId}
-          onNewMessage={fetchMessages}
+          onNewMessage={fetchMessages || (() => console.error('fetchMessages is undefined'))}
           disabled={isChatClosed}
         />
       </div>

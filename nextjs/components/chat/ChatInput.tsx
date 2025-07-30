@@ -16,6 +16,12 @@ export function ChatInput({ chatId, onNewMessage, disabled = false }: ChatInputP
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
 
+  // Safeguard against undefined props
+  if (!chatId || !onNewMessage) {
+    console.error('ChatInput: Missing required props', { chatId, onNewMessage });
+    return null;
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
