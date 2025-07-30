@@ -44,6 +44,18 @@ if (IS_SERVER) {
 
 const API_BASE_URL = determinedApiBaseUrl;
 
+// Debug function to check what URL is being used
+export const getApiDebugInfo = () => {
+  return {
+    API_ENV,
+    IS_SERVER,
+    API_BASE_URL,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NODE_ENV: process.env.NODE_ENV,
+    determinedUrl: determinedApiBaseUrl
+  };
+};
+
 // Extend Prisma types with any additional fields we need
 export type ChatWithMessages = Chat & {
   messages?: Message[];
