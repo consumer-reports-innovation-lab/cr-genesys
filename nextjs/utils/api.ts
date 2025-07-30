@@ -18,7 +18,7 @@ const API_BASE_URLS = {
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000", // Fallback for client dev
   test: process.env.INTERNAL_API_URL || "http://fastapi:8000", // For test environment, likely server-side
   production:
-    process.env.NEXT_PUBLIC_API_URL || "https://api.consumerreports.org", // Production URL for client/server if not distinguished
+    process.env.NEXT_PUBLIC_API_URL || "https://cr-genesys-pczq.onrender.com", // Production URL for client/server if not distinguished
 };
 
 let determinedApiBaseUrl: string;
