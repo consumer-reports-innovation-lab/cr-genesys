@@ -55,6 +55,7 @@
     "react-dom": "^19",
     "react-hook-form": "^7.54.0",
     "socket.io-client": "^4.6.2",
+    "sonner": "^1.7.0",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
