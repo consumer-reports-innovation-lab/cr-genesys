@@ -65,6 +65,10 @@ def read_root():
         "socket_io_enabled": True
     }
 
+@fastapi_app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "cr-genesys-backend"}
+
 @fastapi_app.get("/purecloud/permissions")
 def purecloud_permissions():
     """
