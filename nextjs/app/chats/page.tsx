@@ -7,15 +7,23 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 export default function ChatListPage() {
   const { data: chats, isLoading, error, isError } = useChats();
+  const { data: session, status: sessionStatus } = useSession();
   const createChatMutation = useCreateChat();
 
   const [isCreating, setIsCreating] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
 
   const handleCreateChat = async () => {
+    // Additional safety check
+    if (sessionStatus !== 'authenticated' || !session) {
+      console.error('Cannot create chat: User not authenticated');
+      return;
+    }
+
     try {
       setIsCreating(true);
       setShowOverlay(true);
@@ -52,7 +60,7 @@ export default function ChatListPage() {
         <h1 className="text-2xl font-bold">Your Chats</h1>
         <Button
           onClick={handleCreateChat}
-          disabled={createChatMutation.isPending || isCreating}
+          disabled={createChatMutation.isPending || isCreating || sessionStatus !== 'authenticated' || !session}
           className="relative"
         >
           {isCreating ? (
@@ -71,12 +79,13 @@ export default function ChatListPage() {
         <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
           <h3 className="text-red-800 font-medium mb-2">Connection Error</h3>
           <p className="text-red-700 text-sm mb-3">
-            Unable to connect to the chat server. The FastAPI server at
-            http://localhost:8000 might not be running.
+            Unable to connect to the chat server. The FastAPI server might not be running.
           </p>
           <p className="text-red-700 text-sm mb-3">
             Technical details:{" "}
-            {(error as Error)?.message || "Network connection reset"}
+            {error && typeof error === 'object' && 'message' in error 
+              ? (error as Error).message 
+              : "Network connection reset"}
           </p>
           <div className="mt-4">
             <Button
@@ -135,9 +144,11 @@ export default function ChatListPage() {
                   : "Unknown"}
               </div>
             </div>
-            <Button variant="outline" asChild>
-              <Link href={`/chats/${chat.id}`}>Open</Link>
-            </Button>
+            <Link href={`/chats/${chat.id}`} passHref>
+              <Button variant="outline" asChild>
+                <a>Open</a>
+              </Button>
+            </Link>
           </Card>
         ))}
       </div>

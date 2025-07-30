@@ -36,11 +36,19 @@ export function useChats() {
  * Hook to create a new chat
  */
 export function useCreateChat() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: () => createChat(session),
+    mutationFn: () => {
+      if (status === 'loading') {
+        throw new Error('Session is still loading');
+      }
+      if (!session) {
+        throw new Error('No valid session found');
+      }
+      return createChat(session);
+    },
     onSuccess: (newChat) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.chats] });
       return newChat;
