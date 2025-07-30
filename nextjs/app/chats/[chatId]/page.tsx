@@ -164,7 +164,7 @@ export default function ChatPage() {
                     sender: msg.isSystem ? "system" : "user",
                     createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
                   };
-                }).filter(Boolean) || []
+                }).filter((msg): msg is NonNullable<typeof msg> => msg !== null) || []
               }
             />
           )}
