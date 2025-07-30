@@ -54,22 +54,26 @@ def websocket_auth_required(sio):
     """
     Decorator factory that returns a decorator to require authentication for WebSocket event handlers.
     The sio instance is passed to access the socket environment.
+    
+    Note: This decorator expects user session data to be stored during the connect event.
+    Import get_user_session from sockets.handlers to access stored session data.
     """
     def decorator(handler):
         async def wrapped(sid, *args, **kwargs):
-            environ = sio.environ.get(sid, {})
-            # For event handlers (not connect), we don't have auth data, so we'll need to store it per session
-            # For now, we'll need to implement a session storage mechanism
-            user, session = await get_websocket_user(environ, None)
+            # Import here to avoid circular import
+            from sockets.handlers import get_user_session
             
-            if not user or not session:
+            # Get stored user session data
+            session_data = get_user_session(sid)
+            
+            if not session_data:
                 await sio.emit('unauthorized', {'message': 'Authentication required'}, room=sid)
                 await sio.disconnect(sid)
                 return
                 
             # Add user and session to the handler's kwargs
-            kwargs['user'] = user
-            kwargs['session'] = session
+            kwargs['user'] = session_data['user']
+            kwargs['session'] = session_data['session']
             return await handler(sid, *args, **kwargs)
         return wrapped
     return decorator

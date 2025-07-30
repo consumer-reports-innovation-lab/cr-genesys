@@ -41,12 +41,16 @@ async def test_socket():
 # Initialize Socket.IO with simplified configuration
 sio = socketio.AsyncServer(
     cors_allowed_origins="*",
-    async_mode='asgi'
+    async_mode='asgi',
+    logger=True,
+    engineio_logger=True
 )
 
 # Import and register socket handlers after sio is created
+print(f"========== MAIN.PY: ABOUT TO REGISTER SOCKET HANDLERS ==========")
 from sockets.handlers import register_handlers
 register_handlers(sio)
+print(f"========== MAIN.PY: FINISHED REGISTERING SOCKET HANDLERS ==========")
 
 # Pydantic model for the request body
 class ChatMessageCreate(BaseModel):
@@ -137,7 +141,7 @@ async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, cur
     await sio.emit("new_message", {
         "chat_id": chat_id,
         "message": new_message
-    }, room=str(current_user.id))  # Ensure user_id is a string
+    }, room=str(current_user.id), namespace='/ws')  # Ensure user_id is a string
     
     return new_message
 

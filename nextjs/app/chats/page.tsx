@@ -135,11 +135,9 @@ export default function ChatListPage() {
                   : "Unknown"}
               </div>
             </div>
-            <Link href={`/chats/${chat.id}`} passHref>
-              <Button variant="outline" asChild>
-                <a>Open</a>
-              </Button>
-            </Link>
+            <Button variant="outline" asChild>
+              <Link href={`/chats/${chat.id}`}>Open</Link>
+            </Button>
           </Card>
         ))}
       </div>
