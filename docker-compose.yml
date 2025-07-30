@@ -10,10 +10,10 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
-      - GENESYS_CLOUD_CLIENT_ID=***REMOVED***
-      - GENESYS_CLOUD_CLIENT_SECRET=***REMOVED***
-      - MAILCHIMP_TRANSACTIONAL_API_KEY=***REMOVED***
-      - OPENAI_API_KEY=***REMOVED***
+      - GENESYS_CLOUD_CLIENT_ID=${GENESYS_CLOUD_CLIENT_ID}
+      - GENESYS_CLOUD_CLIENT_SECRET=${GENESYS_CLOUD_CLIENT_SECRET}
+      - MAILCHIMP_TRANSACTIONAL_API_KEY=${MAILCHIMP_TRANSACTIONAL_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
 
   db:
@@ -55,7 +55,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - INTERNAL_API_URL=http://web:8000 # For server-to-server calls within Docker
       - NEXT_PUBLIC_API_URL=http://localhost:8000 # For client-side calls (browser to host-mapped port)
-      - NEXTAUTH_SECRET=***REMOVED***
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=http://localhost:3000
     depends_on:
       - web
