@@ -5,35 +5,36 @@ from sqlalchemy.orm import Session
 from utils.db import get_db
 from models import Session as SessionModel, User
 
-async def get_websocket_user(environ, sio) -> Tuple[Optional[User], Optional[SessionModel]]:
+async def get_websocket_user(environ, auth_data) -> Tuple[Optional[User], Optional[SessionModel]]:
     """
     Authenticate WebSocket connection using session token from headers.
     Returns (user, session) tuple if authenticated, (None, None) otherwise.
     """
-    # Get session token from headers or auth field
-    scope = environ.get('asgi.scope', {})
-    headers = dict(scope.get('headers', []))
-    auth_header = headers.get(b'authorization', b'').decode('latin1')
+    # Get session token from Socket.IO auth data
     token = None
 
-    if auth_header and auth_header.startswith('Bearer '):
-        token = auth_header.split(' ')[1]
-    else:
-        # Try to get token from Socket.IO 'auth' payload
-        auth_payload = scope.get('auth')
-        if auth_payload and isinstance(auth_payload, dict):
-            auth_token = auth_payload.get('token')
-            if auth_token and auth_token.startswith('Bearer '):
-                token = auth_token.split(' ')[1]
+    print(f"DEBUG: WebSocket auth - environ: {environ}")
+    print(f"DEBUG: WebSocket auth - auth_data: {auth_data}")
+
+    # Check if auth_data contains the token
+    if auth_data and isinstance(auth_data, dict):
+        auth_token = auth_data.get('token')
+        print(f"DEBUG: Auth token from auth_data: {auth_token}")
+        if auth_token and auth_token.startswith('Bearer '):
+            token = auth_token.split(' ')[1]
+            print(f"DEBUG: Extracted token: {token[:20]}...")
+        else:
+            print(f"DEBUG: Invalid auth token format: {auth_token}")
 
     if not token:
+        print("DEBUG: No valid token found in WebSocket auth data")
         return None, None
     
     # Get database session
     db = next(get_db())
     try:
         # Verify session token
-        session = db.query(SessionModel).filter(SessionModel.token == token).first()
+        session = db.query(SessionModel).filter(SessionModel.session_token == token).first()
         if not session:
             return None, None
             
@@ -57,7 +58,9 @@ def websocket_auth_required(sio):
     def decorator(handler):
         async def wrapped(sid, *args, **kwargs):
             environ = sio.environ.get(sid, {})
-            user, session = await get_websocket_user(environ, sio)
+            # For event handlers (not connect), we don't have auth data, so we'll need to store it per session
+            # For now, we'll need to implement a session storage mechanism
+            user, session = await get_websocket_user(environ, None)
             
             if not user or not session:
                 await sio.emit('unauthorized', {'message': 'Authentication required'}, room=sid)

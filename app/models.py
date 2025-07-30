@@ -28,6 +28,7 @@ class Session(Base):
     session_token = Column(String, unique=True, nullable=False)
     user_id = Column(String, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     expires = Column(DateTime, nullable=False)
+    device_id = Column(String, nullable=True)  # Add missing device_id column
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 

@@ -29,6 +29,8 @@ export const useSocket = ({
 
   // Initialize socket connection
   useEffect(() => {
+    console.log('useSocket - initializing with:', { url, token: token?.substring(0, 20) + '...' });
+    
     // Initialize socket with optional custom URL and token
     const socket = initSocket(url, token);
     socketRef.current = socket;

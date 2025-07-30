@@ -105,6 +105,7 @@ function getAuthHeader(session: Session | null): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
+  
   if (session) {
     headers["Authorization"] = `Bearer ${session.accessToken}`;
   }

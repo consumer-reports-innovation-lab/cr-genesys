@@ -9,7 +9,7 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://neondb_owner:npg_rN09pGcFZLzq@ep-damp-cake-a5gygi9h-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - GENESYS_CLOUD_CLIENT_ID=***REMOVED***
       - GENESYS_CLOUD_CLIENT_SECRET=***REMOVED***
       - MAILCHIMP_TRANSACTIONAL_API_KEY=***REMOVED***

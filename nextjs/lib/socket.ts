@@ -40,9 +40,17 @@ let socket: SocketType | null = null;
  * @returns The socket instance
  */
 export const initSocket = (url?: string, token?: string): SocketType | null => {
+  console.log('initSocket called with:', { url, hasToken: !!token, token: token?.substring(0, 20) + '...' });
+  
   if (!socket) {
     const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
     const socketUrl = url || (typeof envSocketUrl === 'string' ? envSocketUrl.replace('http', 'ws') : undefined) || 'ws://localhost:8000';
+    
+    console.log('initSocket - creating new socket with:', {
+      socketUrl,
+      hasToken: !!token,
+      auth: token ? { token: `Bearer ${token}` } : undefined
+    });
     
     try {
       socket = io(socketUrl, {

@@ -1,31 +1,15 @@
 import { saltAndHashPassword } from "@/utils/password";
 import { PrismaClient } from "@prisma/client";
 import type { Session, User } from "next-auth";
+import type { AuthOptions } from "next-auth";
+import type { JWT } from "next-auth/jwt";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { createSession } from "./session";
 
 // Extend NextAuth Session type to include deviceId
 declare module "next-auth" {
   interface Session {
     deviceId?: string;
-  }
-}
-
-import NextAuth from "next-auth";
-import type { JWT } from "next-auth/jwt";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { createSession } from "./session";
-
-// Simple UUID generator function
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-// Define custom session type
-declare module "next-auth" {
-  interface Session {
     user: {
       id: string;
       name?: string | null;
@@ -36,13 +20,22 @@ declare module "next-auth" {
   }
 }
 
-// Create auth config
-const authConfig = {
+// Simple UUID generator function
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Create auth options for NextAuth v4
+export const authOptions: AuthOptions = {
   pages: {
     signIn: "/login",
   },
   session: {
-    strategy: "jwt" as const, // Always use JWT for simplicity
+    strategy: "jwt", // Always use JWT for simplicity
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
@@ -138,5 +131,3 @@ const authConfig = {
   },
   debug: process.env.NODE_ENV === "development",
 };
-
-export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);

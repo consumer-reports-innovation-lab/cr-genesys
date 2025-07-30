@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { useSocket } from '@/hooks/useSocket';
 import { Message } from '@prisma/client';
 import { getWebSocketUrl } from '@/utils/websocket';
@@ -18,6 +19,14 @@ export function ChatSocketProvider({
   onNewMessage, 
   onError 
 }: ChatSocketProviderProps) {
+  // Get the current session for authentication
+  const { data: session, status } = useSession();
+  
+  // Debug session state
+  console.log('ChatSocketProvider - session status:', status);
+  console.log('ChatSocketProvider - session data:', session);
+  console.log('ChatSocketProvider - accessToken:', session?.accessToken);
+  
   // Track the current chat ID to prevent race conditions
   const currentChatId = useRef(chatId);
   
@@ -26,8 +35,11 @@ export function ChatSocketProvider({
     currentChatId.current = chatId;
   }, [chatId]);
 
-  // Set up WebSocket connection and event listeners
-  const { joinRoom, leaveRoom } = useSocket({
+  // Set up WebSocket connection and event listeners (only if authenticated)
+  console.log('ChatSocketProvider - about to call useSocket, session exists:', !!session);
+  console.log('ChatSocketProvider - session accessToken:', session?.accessToken);
+  
+  const { joinRoom, leaveRoom } = useSocket(session ? {
     events: {
       // When a new message is received, validate it before calling the callback
       new_message: (data: unknown) => {
@@ -73,24 +85,29 @@ export function ChatSocketProvider({
       console.log('Disconnected from WebSocket server');
     },
     // Connect to the backend WebSocket server
-    url: getWebSocketUrl()
-  });
+    url: getWebSocketUrl(),
+    // Pass the session token for authentication
+    token: session?.accessToken
+  } : {});
 
   // Handle room changes when chatId changes
   useEffect(() => {
+    // Only manage rooms if we have a session and socket functions
+    if (!session || !joinRoom || !leaveRoom) return;
+    
     const previousChatId = currentChatId.current;
     
     if (previousChatId !== chatId) {
       // Leave the previous room and join the new one
-      leaveRoom?.(previousChatId);
-      joinRoom?.(chatId);
+      leaveRoom(previousChatId);
+      joinRoom(chatId);
     }
     
     // Cleanup on unmount
     return () => {
-      leaveRoom?.(chatId);
+      leaveRoom(chatId);
     };
-  }, [chatId, joinRoom, leaveRoom]);
+  }, [chatId, joinRoom, leaveRoom, session]);
 
   // No need to render anything, just manage the WebSocket connection
   return <>{children}</>;

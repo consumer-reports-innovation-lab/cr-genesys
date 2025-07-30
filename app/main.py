@@ -18,46 +18,42 @@ from utils.chat.create_chat import create_chat
 from utils.chat.get_chat_messages import get_chat_messages as _get_chat_messages_from_db
 
 # Create FastAPI app
-app = FastAPI(
+fastapi_app = FastAPI(
     title="Consumer Reports API",
     description="API for Consumer Reports Genesis Prototype",
     version="1.0.0"
 )
 
-# Initialize Socket.IO
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
-socket_app = socketio.ASGIApp(socketio_server=sio, other_asgi_app=app)
+# Add CORS middleware to FastAPI app
+fastapi_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add a simple test endpoint
+@fastapi_app.get("/test-socket")
+async def test_socket():
+    return {"message": "FastAPI is working", "socket_io_available": True}
+
+# Initialize Socket.IO with simplified configuration
+sio = socketio.AsyncServer(
+    cors_allowed_origins="*",
+    async_mode='asgi'
+)
 
 # Import and register socket handlers after sio is created
-from sockets.handlers import *  # This will register the handlers with our sio instance
-
-# Mount Socket.IO at /ws path
-app.mount("/ws", socket_app)
+from sockets.handlers import register_handlers
+register_handlers(sio)
 
 # Pydantic model for the request body
 class ChatMessageCreate(BaseModel):
     system_prompt: str
     question: str
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://frontend:3000"],  # NextJS dev server and Docker service
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Add Socket.IO CORS headers
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-@app.get("/")
+@fastapi_app.get("/")
 def read_root():
     return {
         "message": "Hello from FastAPI",
@@ -65,7 +61,7 @@ def read_root():
         "socket_io_enabled": True
     }
 
-@app.get("/purecloud/permissions")
+@fastapi_app.get("/purecloud/permissions")
 def purecloud_permissions():
     """
     Returns the Genesys Cloud permissions for the current app credentials.
@@ -81,7 +77,7 @@ def purecloud_permissions():
 from typing import List
 from routes.webhook import router as webhook_router
 
-@app.get("/chats")
+@fastapi_app.get("/chats")
 def get_user_chats(current_user=Depends(auth_guard), db=Depends(get_db)):
     """
     Get all chats for the authenticated user, each with the most recent message.
@@ -89,7 +85,7 @@ def get_user_chats(current_user=Depends(auth_guard), db=Depends(get_db)):
     user_id = current_user.id
     return get_chats_by_user_with_latest_message(db, user_id)
 
-@app.post("/chats")
+@fastapi_app.post("/chats")
 def create_new_chat(current_user=Depends(auth_guard), db=Depends(get_db)):
     """
     Create a new chat for the authenticated user.
@@ -98,7 +94,7 @@ def create_new_chat(current_user=Depends(auth_guard), db=Depends(get_db)):
     return new_chat
 
 
-@app.get("/chats/{chat_id}")
+@fastapi_app.get("/chats/{chat_id}")
 def get_chat(
     chat_id: str, 
     include_chat_history: bool = True,
@@ -116,7 +112,7 @@ def get_chat(
     return chat_info
 
 
-@app.get("/chats/{chat_id}/messages")
+@fastapi_app.get("/chats/{chat_id}/messages")
 def get_chat_messages(chat_id: str, _=Depends(chat_ownership_guard), db=Depends(get_db)):
     """
     Get all messages for a specific chat, ordered by creation time.
@@ -124,7 +120,7 @@ def get_chat_messages(chat_id: str, _=Depends(chat_ownership_guard), db=Depends(
     messages = _get_chat_messages_from_db(db, chat_id)
     return messages
 
-@app.post("/chats/{chat_id}/messages")
+@fastapi_app.post("/chats/{chat_id}/messages")
 async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, current_user=Depends(chat_ownership_guard), db=Depends(get_db)):
     """
     Generate a new message for a specific chat using AI.
@@ -144,3 +140,9 @@ async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, cur
     }, room=str(current_user.id))  # Ensure user_id is a string
     
     return new_message
+
+# Create Socket.IO ASGI app with correct configuration
+socket_app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app, socketio_path='/ws/socket.io')
+
+# Use the combined app
+app = socket_app
