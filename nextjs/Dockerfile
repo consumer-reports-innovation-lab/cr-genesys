@@ -1,4 +1,4 @@
-# Development image for Next.js
+# Production image for Next.js
 FROM node:23-alpine
 WORKDIR /app
 
@@ -11,8 +11,14 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build the application
+RUN npm run build
+
 # Expose port
 EXPOSE 3000
 
-# Start development server
-CMD ["npm", "run", "dev"]
+# Start production server with migrations
+CMD ["./scripts/start-production.sh"]
