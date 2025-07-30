@@ -21,4 +21,4 @@ RUN npm run build
 EXPOSE 3000
 
 # Start production server with migrations
-CMD ["./scripts/start-production.sh"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && npm run start"]
