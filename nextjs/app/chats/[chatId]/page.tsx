@@ -123,9 +123,18 @@ export default function ChatPage() {
   }
 
   // --- Render Chat ---
+  // Don't render if chatId is not available yet
+  if (!chatId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <ChatSocketProvider 
-      chatId={chatId} 
+      chatId={chatId as string} 
       onNewMessage={handleNewMessage}
       onError={handleSocketError}
     >
@@ -154,7 +163,7 @@ export default function ChatPage() {
         </Card>
         {/* Pass fetchMessages down as onNewMessage and disable if chat is closed */}
         <ChatInput
-          chatId={chatId as string}
+          chatId={chatId}
           onNewMessage={fetchMessages}
           disabled={isChatClosed}
         />

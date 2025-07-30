@@ -19,6 +19,11 @@ export function ChatSocketProvider({
   onNewMessage, 
   onError 
 }: ChatSocketProviderProps) {
+  // Early return if chatId is not provided
+  if (!chatId) {
+    return <>{children}</>;
+  }
+
   // Get the current session for authentication
   const { data: session, status } = useSession();
   
