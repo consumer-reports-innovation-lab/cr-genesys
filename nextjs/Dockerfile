@@ -11,14 +11,14 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client (disable SSL verification for certificate issues)
+RUN NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate
 
 # Build the application
 RUN npm run build
 
-# Expose port
+# Expose port (will be overridden by Render)
 EXPOSE 3000
 
-# Start production server with migrations
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && npm run start"]
+# Start production server with migrations and dynamic port
+CMD ["sh", "-c", "NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma migrate deploy && NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate && npm run start -- -p ${PORT:-3000}"]
