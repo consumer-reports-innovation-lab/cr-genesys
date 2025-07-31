@@ -86,6 +86,9 @@ from typing import List
 from routes.webhook import router as webhook_router
 from utils.chat.initialize_genesys_session import get_available_flows
 
+# Mount the webhook router
+fastapi_app.include_router(webhook_router)
+
 @fastapi_app.get("/chats")
 def get_user_chats(current_user=Depends(auth_guard), db=Depends(get_db)):
     """
