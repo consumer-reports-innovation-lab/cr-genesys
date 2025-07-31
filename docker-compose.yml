@@ -44,13 +44,14 @@ services:
   nextjs:
     build: ./nextjs
     container_name: nextjs_app
-    network_mode: host
+    ports:
+      - "3000:3000"
     command: sh -c "npm run start -- -p 3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
-      - INTERNAL_API_URL=http://localhost:8000 # Using host network, can reach localhost
-      - NEXT_PUBLIC_API_URL=http://localhost:8000 # Both container and browser use localhost
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - INTERNAL_API_URL=http://web:8000 # For server-to-server calls within Docker
+      - NEXT_PUBLIC_API_URL=http://localhost:8000 # For client-side calls (browser to host-mapped port)
       - NEXTAUTH_SECRET=1YL3ncgIwkZc7/Zz82VRMhKexambiZUDNmVD+sBmCTU=
       - NEXTAUTH_URL=http://localhost:3000
     depends_on:

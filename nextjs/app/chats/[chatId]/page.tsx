@@ -158,11 +158,31 @@ export default function ChatPage() {
                     return null;
                   }
                   
+                  // Derive message type from existing fields instead of depending on messageType column
+                  const getMessageType = (): 'user' | 'system' | 'system_to_genesys' | 'genesys' => {
+                    // Messages from Genesys (have genesys_message_id and sent_to_genesys=true and is_system=true)
+                    if (msg.genesysMessageId && msg.sentToGenesys && msg.isSystem) {
+                      return 'genesys';
+                    }
+                    // System messages sent to Genesys (sent_to_genesys=true, is_system=true, but no genesys_message_id)
+                    if (msg.sentToGenesys && msg.isSystem && !msg.genesysMessageId) {
+                      return 'system_to_genesys';
+                    }
+                    // System messages to users (is_system=true, sent_to_genesys=false)
+                    if (msg.isSystem && !msg.sentToGenesys) {
+                      return 'system';
+                    }
+                    // User messages (is_system=false)
+                    return 'user';
+                  };
+
                   return {
                     id: msg.id,
                     content: msg.content || '',
                     sender: msg.isSystem ? "system" : "user",
                     createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+                    sentToGenesys: msg.sentToGenesys || false,
+                    messageType: getMessageType(),
                   };
                 }).filter((msg): msg is NonNullable<typeof msg> => msg !== null) || []
               }

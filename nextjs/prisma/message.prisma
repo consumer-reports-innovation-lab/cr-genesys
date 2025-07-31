@@ -10,6 +10,9 @@ model Message {
   sentToGenesys     Boolean @default(false) @map("sent_to_genesys")
   genesysMessageId  String? @map("genesys_message_id")
 
+  // Message type for UI styling: user, system, system_to_genesys, genesys
+  messageType String @default("user") @map("message_type")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

@@ -67,5 +67,8 @@ class Message(Base):
     # Genesys Open Messaging fields
     sent_to_genesys = Column(Boolean, default=False)
     genesys_message_id = Column(String, nullable=True)
+    
+    # Message type for UI styling: 'user', 'system', 'system_to_genesys', 'genesys'
+    message_type = Column(String, default='user', nullable=False)
 
     chat = relationship('Chat', back_populates='messages')

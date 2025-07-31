@@ -9,6 +9,10 @@ from utils.db import get_db
 from models import Chat, Message
 from sockets.handlers import get_sio
 from config import settings
+from utils.chat.generate_chat_message import decide_genesys_response
+from utils.chat.get_chat_messages import get_chat_messages
+from utils.adaptors.convert_messages_to_chat_history import convert_messages_to_chat_history
+from purecloud_client import send_open_message
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -158,6 +162,107 @@ async def handle_webhook(
         # Broadcast the message to the chat room via Socket.IO
         await sio.emit('new_message', socket_message, room=chat_id)
         logger.info(f"✅ GENESYS: {message.originatingEntity or 'System'} message broadcasted to chat {chat_id} via Socket.IO")
+
+        # Use LLM to decide how to respond to this Genesys message
+        logger.info("🤖 GENESYS RESPONSE: Using LLM to decide how to handle Genesys message...")
+        
+        # Get chat history for context
+        messages = get_chat_messages(db, chat_id)
+        chat_history = convert_messages_to_chat_history(messages)
+        
+        # Get user context (email from chat owner)
+        user_context = f"User email: {chat.user.email}" if chat.user else None
+        
+        # Make decision
+        response_decision = decide_genesys_response(message.text, chat_history, user_context)
+        logger.info(f"🤖 GENESYS DECISION: should_respond_to_genesys={response_decision.should_respond_to_genesys}, should_ask_user={response_decision.should_ask_user}")
+        logger.info(f"🤖 GENESYS EXPLANATION: {response_decision.explanation}")
+
+        # Handle responding to Genesys if decided
+        if response_decision.should_respond_to_genesys and response_decision.genesys_response:
+            logger.info("✅ GENESYS RESPONSE: LLM decided to respond directly to Genesys")
+            try:
+                # Construct to_address for responding to Genesys
+                user_email = chat.user.email
+                if user_email and '@' in user_email:
+                    local_part, domain = user_email.split('@', 1)
+                    to_address = f"{local_part}+{chat_id}@{domain}"
+                    
+                    # Send response to Genesys
+                    logger.info(f"🚀 GENESYS RESPONSE: Sending response to Genesys: {response_decision.genesys_response[:50]}...")
+                    genesys_response = send_open_message(
+                        to_address=to_address,
+                        message_content=response_decision.genesys_response
+                    )
+                    
+                    # Save the response as a system message sent to Genesys
+                    response_message = Message(
+                        content=response_decision.genesys_response,
+                        chat_id=chat_id,
+                        is_system=True,
+                        is_markdown=True,
+                        sent_to_genesys=True,
+                        genesys_message_id=getattr(genesys_response, 'id', None),
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.add(response_message)
+                    db.commit()
+                    db.refresh(response_message)
+                    
+                    # Emit the response message to the chat
+                    response_socket_message = {
+                        'id': str(response_message.id),
+                        'content': response_decision.genesys_response,
+                        'chatId': chat_id,
+                        'isSystem': True,
+                        'isMarkdown': True,
+                        'sentToGenesys': True,
+                        'genesysMessageId': getattr(genesys_response, 'id', None),
+                        'createdAt': response_message.created_at.isoformat(),
+                        'updatedAt': response_message.updated_at.isoformat()
+                    }
+                    await sio.emit('new_message', response_socket_message, room=chat_id)
+                    logger.info(f"✅ GENESYS RESPONSE: Response sent to Genesys and broadcasted to chat {chat_id}")
+                else:
+                    logger.warning(f"❌ GENESYS RESPONSE: Cannot send response - invalid user email")
+            except Exception as e:
+                logger.error(f"❌ GENESYS RESPONSE: Failed to send response to Genesys: {e}")
+
+        # Handle asking user for more info if decided
+        if response_decision.should_ask_user and response_decision.user_question:
+            logger.info("✅ USER QUESTION: LLM decided to ask user for more information")
+            try:
+                # Save the question as a system message to the user
+                user_question_message = Message(
+                    content=response_decision.user_question,
+                    chat_id=chat_id,
+                    is_system=True,
+                    is_markdown=True,
+                    sent_to_genesys=False,  # This is for the user, not Genesys
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                db.add(user_question_message)
+                db.commit()
+                db.refresh(user_question_message)
+                
+                # Emit the question to the user
+                question_socket_message = {
+                    'id': str(user_question_message.id),
+                    'content': response_decision.user_question,
+                    'chatId': chat_id,
+                    'isSystem': True,
+                    'isMarkdown': True,
+                    'sentToGenesys': False,
+                    'genesysMessageId': None,
+                    'createdAt': user_question_message.created_at.isoformat(),
+                    'updatedAt': user_question_message.updated_at.isoformat()
+                }
+                await sio.emit('new_message', question_socket_message, room=chat_id)
+                logger.info(f"✅ USER QUESTION: Question sent to user in chat {chat_id}")
+            except Exception as e:
+                logger.error(f"❌ USER QUESTION: Failed to send question to user: {e}")
 
         return {"status": "success", "messageId": message.id}
 

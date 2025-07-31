@@ -1,4 +1,6 @@
 import socketio
+import uuid
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Depends, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, ValidationError
@@ -137,7 +139,8 @@ async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, cur
     """
     Generate a new message for a specific chat using AI.
     """
-    new_message = generate_chat_message(
+    # Generate AI response (which will handle all message emissions including the user message)
+    new_message = await generate_chat_message(
         db=db, 
         chat_id=chat_id, 
         system_prompt=message_data.system_prompt, 
@@ -145,11 +148,8 @@ async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, cur
         user_email=current_user.email
     )
     
-    # Emit the new message through Socket.IO
-    await sio.emit("new_message", {
-        "chat_id": chat_id,
-        "message": new_message
-    }, room=str(current_user.id), namespace='/ws')  # Ensure user_id is a string
+    # Note: generate_chat_message now handles all socket emissions internally
+    # including user message routing decisions and system responses
     
     return new_message
 
