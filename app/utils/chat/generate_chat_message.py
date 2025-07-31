@@ -7,6 +7,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
+from typing import Optional
 from instructor import patch
 from models import Message, Chat
 from utils.chat.get_chat_messages import get_chat_messages
@@ -55,15 +56,15 @@ DUMMY_TOOL_SCHEMA = {
 class MessageRoutingDecision(BaseModel):
     should_respond_to_user: bool = Field(..., description="Whether to respond directly to the user")
     should_send_to_genesys: bool = Field(..., description="Whether to send the message to Genesys")
-    user_response: str = Field(None, description="Response to send to the user if should_respond_to_user is True")
-    genesys_message: str = Field(None, description="Message to send to Genesys if should_send_to_genesys is True")
+    user_response: Optional[str] = Field(None, description="Response to send to the user if should_respond_to_user is True")
+    genesys_message: Optional[str] = Field(None, description="Message to send to Genesys if should_send_to_genesys is True")
     explanation: str = Field(..., description="Brief explanation of the routing decision")
 
 class GenesysResponseDecision(BaseModel):
     should_respond_to_genesys: bool = Field(..., description="Whether to respond directly to Genesys")
     should_ask_user: bool = Field(..., description="Whether to ask the user for more information")
-    genesys_response: str = Field(None, description="Response to send to Genesys if should_respond_to_genesys is True")
-    user_question: str = Field(None, description="Question to ask the user if should_ask_user is True")
+    genesys_response: Optional[str] = Field(None, description="Response to send to Genesys if should_respond_to_genesys is True")
+    user_question: Optional[str] = Field(None, description="Question to ask the user if should_ask_user is True")
     explanation: str = Field(..., description="Brief explanation of the response decision")
 
 class CheckGenesysSessionRequest(BaseModel):
@@ -76,7 +77,7 @@ class CreateGenesysSessionRequest(BaseModel):
 class GenesysSessionResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation was successful")
     message: str = Field(..., description="Status message")
-    session_id: str = Field(None, description="Session ID if successful")
+    session_id: Optional[str] = Field(None, description="Session ID if successful")
 
 def decide_message_routing(user_message: str, chat_history: list, db: Session, chat_id: str) -> MessageRoutingDecision:
     """
