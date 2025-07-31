@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Patch OpenAI client to support instructor tools
-client = patch(openai.OpenAI())
+client = patch(openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")))
 
 # Mailchimp Transactional SMTP configuration
 MAILCHIMP_API_KEY = os.getenv("MAILCHIMP_TRANSACTIONAL_API_KEY")
