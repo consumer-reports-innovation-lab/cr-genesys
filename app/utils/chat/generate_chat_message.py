@@ -159,7 +159,16 @@ Decision guidelines:
 - Ask user for info when: Genesys requests specific personal details, account numbers, preferences, or decisions you can't make for the user
 - Always be helpful and maintain the conversation flow
 
-Consider the conversation context and determine the best approach."""
+Consider the conversation context and determine the best approach.
+
+You must respond with a JSON object containing these exact fields:
+- should_respond_to_genesys: boolean (required)
+- should_ask_user: boolean (required) 
+- explanation: string (required)
+- genesys_response: string or null (optional)
+- user_question: string or null (optional)
+
+Respond only with valid JSON."""
 
     try:
         response = client.chat.completions.create(
