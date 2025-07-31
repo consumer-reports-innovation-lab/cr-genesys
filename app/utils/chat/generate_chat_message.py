@@ -162,92 +162,92 @@ CREATE_GENESYS_SESSION_SCHEMA = {
 
 # === Feedback Email Tool ===
 
-class FeedbackEmailRequest(BaseModel):
-    chat_id: str = Field(..., description="Chat ID to update after feedback is submitted")
-    message_body: str = Field(
-        ..., 
-        max_length=1000, 
-        description="Feedback content to send to support (max 1000 characters)"
-    )
+# class FeedbackEmailRequest(BaseModel):
+#     chat_id: str = Field(..., description="Chat ID to update after feedback is submitted")
+#     message_body: str = Field(
+#         ..., 
+#         max_length=1000, 
+#         description="Feedback content to send to support (max 1000 characters)"
+#     )
 
-class FeedbackResponse(BaseModel):
-    message: str
+# class FeedbackResponse(BaseModel):
+#     message: str
 
-# Send feedback via SMTP with Mailchimp Transactional, from the user's reply_to address
-def send_feedback_email(data: FeedbackEmailRequest, db: Session, user_email: str = None) -> FeedbackResponse:
-    recipient = "feedbackroute@consumerreports.mypurecloud.com"
-    subject   = "User Feedback Submission"
-    sender_email = "jamal.jackson.consultant@consumer.org"
-    reply_to  = "jamal.jackson.consultant@consumer.org" or user_email or "noreply@yourdomain.com"
-    preview   = data.message_body.strip().replace("\n", " ")[:50]
+# # Send feedback via SMTP with Mailchimp Transactional, from the user's reply_to address
+# def send_feedback_email(data: FeedbackEmailRequest, db: Session, user_email: str = None) -> FeedbackResponse:
+#     recipient = "feedbackroute@consumerreports.mypurecloud.com"
+#     subject   = "User Feedback Submission"
+#     sender_email = "jamal.jackson.consultant@consumer.org"
+#     reply_to  = "jamal.jackson.consultant@consumer.org" or user_email or "noreply@yourdomain.com"
+#     preview   = data.message_body.strip().replace("\n", " ")[:50]
 
-    # Create message
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = sender_email
-    message["To"] = recipient
-    message["Reply-To"] = sender_email
+#     # Create message
+#     message = MIMEMultipart("alternative")
+#     message["Subject"] = subject
+#     message["From"] = sender_email
+#     message["To"] = recipient
+#     message["Reply-To"] = sender_email
 
-    # Add text content
-    text_content = data.message_body
-    part1 = MIMEText(text_content, "plain")
-    message.attach(part1)
+#     # Add text content
+#     text_content = data.message_body
+#     part1 = MIMEText(text_content, "plain")
+#     message.attach(part1)
 
-    # Add HTML content
-    html_content = f"<p>{data.message_body}</p>"
-    part2 = MIMEText(html_content, "html")
-    message.attach(part2)
+#     # Add HTML content
+#     html_content = f"<p>{data.message_body}</p>"
+#     part2 = MIMEText(html_content, "html")
+#     message.attach(part2)
 
-    try:
-        logger.info(f"Sending feedback email via SMTP to {recipient} from {sender_email}")
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()  # Secure the connection
-        server.login(SMTP_USERNAME, MAILCHIMP_API_KEY)
-        server.sendmail(sender_email, recipient, message.as_string())
-        server.quit()
-        logger.info("Email sent successfully!")
-    except Exception as e:
-        logger.error(f"SMTP email failed: {e}")
-        raise RuntimeError("Failed to send feedback email")
+#     try:
+#         logger.info(f"Sending feedback email via SMTP to {recipient} from {sender_email}")
+#         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+#         server.starttls()  # Secure the connection
+#         server.login(SMTP_USERNAME, MAILCHIMP_API_KEY)
+#         server.sendmail(sender_email, recipient, message.as_string())
+#         server.quit()
+#         logger.info("Email sent successfully!")
+#     except Exception as e:
+#         logger.error(f"SMTP email failed: {e}")
+#         raise RuntimeError("Failed to send feedback email")
 
-    # Log assistant confirmation message (system message)
-    confirmation_msg = Message(
-        chat_id=data.chat_id,
-        content="Your feedback has been sent.",
-        is_system=True,
-        is_markdown=False
-    )
-    db.add(confirmation_msg)
+#     # Log assistant confirmation message (system message)
+#     confirmation_msg = Message(
+#         chat_id=data.chat_id,
+#         content="Your feedback has been sent.",
+#         is_system=True,
+#         is_markdown=False
+#     )
+#     db.add(confirmation_msg)
 
-    # Set chat status to CLOSED
-    chat = db.query(Chat).filter(Chat.id == data.chat_id).first()
-    if chat:
-        chat.status = "CLOSED"
-        logger.info(f"Chat {data.chat_id} marked as CLOSED.")
+#     # Set chat status to CLOSED
+#     chat = db.query(Chat).filter(Chat.id == data.chat_id).first()
+#     if chat:
+#         chat.status = "CLOSED"
+#         logger.info(f"Chat {data.chat_id} marked as CLOSED.")
 
-    db.commit()
-    db.refresh(confirmation_msg)
+#     db.commit()
+#     db.refresh(confirmation_msg)
 
-    return FeedbackResponse(message=f'Feedback submitted: "{preview}"...')
+#     return FeedbackResponse(message=f'Feedback submitted: "{preview}"...')
 
-# Prepare the tool schema for send_feedback_email
-SEND_FEEDBACK_EMAIL_SCHEMA = {
-    "type": "function",
-    "function": {
-        "name": "send_feedback_email",
-        "description": "Sends feedback provided by the user via email to the support team.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "message_body": {
-                    "type": "string",
-                    "description": "Feedback content to send to support (max 1000 characters)",
-                }
-            },
-            "required": ["message_body"]
-        }
-    }
-}
+# # Prepare the tool schema for send_feedback_email
+# SEND_FEEDBACK_EMAIL_SCHEMA = {
+#     "type": "function",
+#     "function": {
+#         "name": "send_feedback_email",
+#         "description": "Sends feedback provided by the user via email to the support team.",
+#         "parameters": {
+#             "type": "object",
+#             "properties": {
+#                 "message_body": {
+#                     "type": "string",
+#                     "description": "Feedback content to send to support (max 1000 characters)",
+#                 }
+#             },
+#             "required": ["message_body"]
+#         }
+#     }
+# }
 
 
 # === Chat Message Generator ===
@@ -296,7 +296,7 @@ def generate_chat_message(
         raise ValueError(f"Chat {chat_id} not found")
     
     # Forward user message to Genesys if integration is active for this chat
-    if GENESYS_DEPLOYMENT_ID and chat.genesys_open_message_active:
+    if GENESYS_DEPLOYMENT_ID: # and chat.genesys_open_message_active:
         needs_refresh = not chat.genesys_open_message_session_id
         ensure_genesys_session_id(chat, db)
         if needs_refresh:
@@ -336,13 +336,15 @@ def generate_chat_message(
     system_tool_hint = {
         "role": "system",
         "content": (
-            "If the user asks to give feedback (e.g., 'how can I leave feedback?', 'I want to share feedback'), "
-            "respond with: 'Please share your feedback.' and wait for the user's next message. "
-            "Then, call the send_feedback_email tool using that feedback message.\n\n"
-            "If the user spontaneously provides feedback, a complaint, or a suggestion, "
-            "directly call the send_feedback_email tool with their message.\n\n"
-            "You may consider the most recent assistant response as a cue — if the user responds to it with something emotional or critical, "
-            "it's likely feedback and should be sent."
+            "When users provide feedback, complaints, or suggestions, acknowledge their input and "
+            "let them know their feedback will be processed. For example: "
+            "'Thank you for your feedback. I've received your message and it will be reviewed by our team.'\n\n"
+            "Their feedback is automatically sent to our Genesys messaging system through the "
+            "InboundMessageFeedbackFlow, which will trigger the appropriate feedback collection "
+            "and response workflow. You don't need to take any special action - just acknowledge "
+            "their feedback professionally.\n\n"
+            "Focus on being helpful and responsive to their immediate needs while ensuring they "
+            "know their feedback has been captured."
         )
     }
 
@@ -357,7 +359,7 @@ def generate_chat_message(
             ],
             tools=[
                 DUMMY_TOOL_SCHEMA, 
-                SEND_FEEDBACK_EMAIL_SCHEMA,
+                # SEND_FEEDBACK_EMAIL_SCHEMA,
                 CHECK_GENESYS_SESSION_SCHEMA,
                 CREATE_GENESYS_SESSION_SCHEMA
             ],
@@ -381,18 +383,18 @@ def generate_chat_message(
         function_name = getattr(tool_call.function, "name", "unknown")
         logger.info(f"Tool call detected: {function_name}")
 
-        if function_name == "send_feedback_email":
-            try:
-                args = json.loads(tool_call.function.arguments)
-                args['chat_id'] = chat_id
-                req = FeedbackEmailRequest(**args)
-                result = send_feedback_email(req, db=db, user_email=user_email)
-                content = result.message
-            except Exception as e:
-                logger.error(f"Failed to manually invoke send_feedback_email: {e}")
-                content = "[Failed to execute feedback tool]"
+        # if function_name == "send_feedback_email":
+        #     try:
+        #         args = json.loads(tool_call.function.arguments)
+        #         args['chat_id'] = chat_id
+        #         req = FeedbackEmailRequest(**args)
+        #         result = send_feedback_email(req, db=db, user_email=user_email)
+        #         content = result.message
+        #     except Exception as e:
+        #         logger.error(f"Failed to manually invoke send_feedback_email: {e}")
+        #         content = "[Failed to execute feedback tool]"
                 
-        elif function_name == "check_genesys_session":
+        if function_name == "check_genesys_session":
             try:
                 args = json.loads(tool_call.function.arguments)
                 # If chat_id is not in args, use the current chat_id
@@ -455,7 +457,7 @@ def generate_chat_message(
     db.refresh(new_message)
     
     # Forward assistant response to Genesys if integration is active
-    if GENESYS_DEPLOYMENT_ID and chat.genesys_open_message_active:
+    if GENESYS_DEPLOYMENT_ID: # and chat.genesys_open_message_active:
         needs_refresh = not chat.genesys_open_message_session_id
         ensure_genesys_session_id(chat, db)
         if needs_refresh:
