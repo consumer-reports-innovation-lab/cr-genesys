@@ -6,7 +6,7 @@ import type { Message } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatSocketProvider } from "@/providers";
+import { ChatSocketProvider } from "@/providers/chat-socket-provider";
 
 export default function ChatPage() {
   const { chatId } = useParams<{ chatId: string }>(); // Ensure chatId is typed
