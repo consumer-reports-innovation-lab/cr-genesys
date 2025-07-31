@@ -65,7 +65,11 @@ def send_open_message(
     """
     deployment_id = deployment_id or GENESYS_DEPLOYMENT_ID
     access_token = get_access_token()
+    # Try the standard agentless endpoint first
     url = f"{BASE_URL}/api/v2/conversations/messages/agentless"
+    
+    # Alternative endpoint to try if the first fails
+    alt_url = f"{BASE_URL}/api/v2/conversations/messages"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -77,6 +81,8 @@ def send_open_message(
         "toAddress": to_address,
         "textBody": message_content,
         "messengerType": "open",
+        "messenger_type": "open", # Try underscore version
+        "MessengerType": "open",  # Try uppercase version
         "deploymentId": deployment_id,
         "useExistingConversation": use_existing_conversation
     }
@@ -84,7 +90,11 @@ def send_open_message(
     logger.info(f"🚀 GENESYS: Sending agentless Open Messaging message to {to_address}: {message_content[:50]}...")
     logger.info(f"🔍 DEBUG: OpenMessaging API URL: {url}")
     logger.info(f"🔍 DEBUG: Full JSON Payload: {payload}")
+    logger.info(f"🔍 DEBUG: Request headers: {headers}")
     response = requests.post(url, headers=headers, json=payload)
+    
+    logger.info(f"🔍 DEBUG: Response status: {response.status_code}")
+    logger.info(f"🔍 DEBUG: Response headers: {dict(response.headers)}")
 
     if response.status_code not in (200, 202):
         logger.error(f"Error sending agentless message: {response.status_code} - {response.text}")
