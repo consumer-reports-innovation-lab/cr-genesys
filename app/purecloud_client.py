@@ -83,7 +83,7 @@ def send_open_message(
 
     logger.info(f"🚀 GENESYS: Sending agentless Open Messaging message to {to_address}: {message_content[:50]}...")
     logger.info(f"🔍 DEBUG: OpenMessaging API URL: {url}")
-    logger.info(f"🔍 DEBUG: Payload: from={from_address}, to={to_address}, deployment={deployment_id}")
+    logger.info(f"🔍 DEBUG: Full JSON Payload: {payload}")
     response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code not in (200, 202):
