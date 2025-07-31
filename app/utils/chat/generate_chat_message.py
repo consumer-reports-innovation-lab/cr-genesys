@@ -277,6 +277,7 @@ def generate_chat_message(
     user_email: str = None
 ) -> Message:
     logger.info(f"Generating response for chat_id: {chat_id}, question: {question}")
+    logger.info(f"🔍 DEBUG: GENESYS_DEPLOYMENT_ID={GENESYS_DEPLOYMENT_ID}, user_email={user_email}")
 
     # Save the user's question as a Message
     user_message = Message(
@@ -296,7 +297,9 @@ def generate_chat_message(
         raise ValueError(f"Chat {chat_id} not found")
     
     # Forward user message to Genesys if integration is active for this chat
+    logger.info(f"🔍 DEBUG: Checking Genesys conditions - GENESYS_DEPLOYMENT_ID: {bool(GENESYS_DEPLOYMENT_ID)}, chat.genesys_open_message_active: {chat.genesys_open_message_active}")
     if GENESYS_DEPLOYMENT_ID: # and chat.genesys_open_message_active:
+        logger.info("✅ GENESYS: Starting Genesys integration for user message")
         needs_refresh = not chat.genesys_open_message_session_id
         ensure_genesys_session_id(chat, db)
         if needs_refresh:
@@ -305,11 +308,16 @@ def generate_chat_message(
             # Construct addresses for Genesys Open Messaging
             from_address = os.environ.get("GENESYS_FROM_ADDRESS", "noreply@example.com")
             to_address = None
+            logger.info(f"🔍 DEBUG: user_email='{user_email}', from_address='{from_address}'")
             if user_email and '@' in user_email:
                 local_part, domain = user_email.split('@', 1)
                 to_address = f"{local_part}+{chat_id}@{domain}"
+                logger.info(f"✅ GENESYS: Constructed to_address='{to_address}'")
+            else:
+                logger.warning(f"❌ GENESYS: Cannot construct to_address - user_email is invalid or missing")
             
             if to_address:
+                logger.info(f"🚀 GENESYS: Sending user message to OpenMessaging API...")
                 # Send message to Genesys Open Messaging
                 genesys_response = send_open_message(
                     from_address=from_address,
@@ -323,12 +331,14 @@ def generate_chat_message(
                 if hasattr(genesys_response, 'id'):
                     user_message.genesys_message_id = genesys_response.id
                 db.commit()
-                logger.info(f"Message sent to Genesys for chat {chat_id}")
+                logger.info(f"✅ GENESYS: Message sent successfully to Genesys for chat {chat_id}")
             else:
-                logger.warning(f"Cannot send to Genesys: user_email not provided or invalid for chat {chat_id}")
+                logger.warning(f"❌ GENESYS: Cannot send to Genesys: user_email not provided or invalid for chat {chat_id}")
         except Exception as e:
-            logger.error(f"Failed to send message to Genesys: {e}")
+            logger.error(f"❌ GENESYS: Failed to send message to Genesys: {e}")
             # Continue with local processing even if Genesys fails
+    else:
+        logger.info(f"🔄 GENESYS: Skipping Genesys integration - GENESYS_DEPLOYMENT_ID not set")
 
     messages = get_chat_messages(db, chat_id)
     chat_history = convert_messages_to_chat_history(messages)
@@ -457,7 +467,9 @@ def generate_chat_message(
     db.refresh(new_message)
     
     # Forward assistant response to Genesys if integration is active
+    logger.info(f"🔍 DEBUG: Checking Genesys conditions for AI response - GENESYS_DEPLOYMENT_ID: {bool(GENESYS_DEPLOYMENT_ID)}")
     if GENESYS_DEPLOYMENT_ID: # and chat.genesys_open_message_active:
+        logger.info("✅ GENESYS: Starting Genesys integration for AI response")
         needs_refresh = not chat.genesys_open_message_session_id
         ensure_genesys_session_id(chat, db)
         if needs_refresh:
@@ -466,11 +478,16 @@ def generate_chat_message(
             # Construct addresses for Genesys Open Messaging
             from_address = os.environ.get("GENESYS_FROM_ADDRESS", "noreply@example.com")
             to_address = None
+            logger.info(f"🔍 DEBUG: AI response - user_email='{user_email}', from_address='{from_address}'")
             if user_email and '@' in user_email:
                 local_part, domain = user_email.split('@', 1)
                 to_address = f"{local_part}+{chat_id}@{domain}"
+                logger.info(f"✅ GENESYS: AI response - Constructed to_address='{to_address}'")
+            else:
+                logger.warning(f"❌ GENESYS: AI response - Cannot construct to_address - user_email is invalid or missing")
             
             if to_address:
+                logger.info(f"🚀 GENESYS: Sending AI response to OpenMessaging API...")
                 # Send message to Genesys Open Messaging
                 genesys_response = send_open_message(
                     from_address=from_address,
@@ -484,12 +501,14 @@ def generate_chat_message(
                 if hasattr(genesys_response, 'id'):
                     new_message.genesys_message_id = genesys_response.id
                 db.commit()
-                logger.info(f"Assistant response sent to Genesys for chat {chat_id}")
+                logger.info(f"✅ GENESYS: AI response sent successfully to Genesys for chat {chat_id}")
             else:
-                logger.warning(f"Cannot send assistant response to Genesys: user_email not provided or invalid for chat {chat_id}")
+                logger.warning(f"❌ GENESYS: Cannot send AI response to Genesys: user_email not provided or invalid for chat {chat_id}")
         except Exception as e:
-            logger.error(f"Failed to send assistant response to Genesys: {e}")
+            logger.error(f"❌ GENESYS: Failed to send AI response to Genesys: {e}")
             # Continue even if sending to Genesys fails
+    else:
+        logger.info(f"🔄 GENESYS: Skipping AI response Genesys integration - GENESYS_DEPLOYMENT_ID not set")
 
     logger.info(f"Successfully created new message for chat {chat_id}")
     return new_message

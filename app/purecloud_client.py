@@ -16,10 +16,21 @@ def get_purecloud_client():
     """
     Authenticates with Genesys using client credentials and returns an authenticated ApiClient.
     """
-    client_id = os.environ["GENESYS_CLOUD_CLIENT_ID"]
-    client_secret = os.environ["GENESYS_CLOUD_CLIENT_SECRET"]
+    logger.info("🔍 DEBUG: Attempting Genesys OAuth authentication...")
+    
+    client_id = os.environ.get("GENESYS_CLOUD_CLIENT_ID")
+    client_secret = os.environ.get("GENESYS_CLOUD_CLIENT_SECRET")
+    
+    logger.info(f"🔍 DEBUG: OAuth credentials - client_id: {'SET' if client_id else 'MISSING'}, client_secret: {'SET' if client_secret else 'MISSING'}")
+    
+    if not client_id or not client_secret:
+        logger.error("❌ GENESYS: Missing OAuth credentials - GENESYS_CLOUD_CLIENT_ID or GENESYS_CLOUD_CLIENT_SECRET not set")
+        raise ValueError("Missing Genesys OAuth credentials")
+    
+    logger.info(f"🚀 GENESYS: Authenticating with Genesys Cloud using client_id: {client_id[:8]}...")
     api_client = PureCloudPlatformClientV2.api_client.ApiClient()
     api_client.get_client_credentials_token(client_id, client_secret)
+    logger.info("✅ GENESYS: OAuth authentication successful!")
     return api_client
 
 def get_access_token():
@@ -69,7 +80,9 @@ def send_open_message(
         "useExistingConversation": use_existing_conversation
     }
 
-    logger.info(f"Sending agentless Open Messaging message: {message_content[:50]}...")
+    logger.info(f"🚀 GENESYS: Sending agentless Open Messaging message to {to_address}: {message_content[:50]}...")
+    logger.info(f"🔍 DEBUG: OpenMessaging API URL: {url}")
+    logger.info(f"🔍 DEBUG: Payload: from={from_address}, to={to_address}, deployment={deployment_id}")
     response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code not in (200, 202):
