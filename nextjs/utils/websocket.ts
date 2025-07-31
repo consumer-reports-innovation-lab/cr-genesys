@@ -9,7 +9,7 @@ export const getWebSocketUrl = (): string => {
   
   // In production, use NEXT_PUBLIC_API_URL or default to production URL
   if (isProduction) {
-    return (process.env.NEXT_PUBLIC_API_URL || 'https://api.consumerreports.org').replace(/^http/, 'ws') + '/ws';
+    return (process.env.NEXT_PUBLIC_API_URL || 'https://cr-genesys-pczq.onrender.com').replace(/^http/, 'ws') + '/ws';
   }
   
   // In development, use different URLs for server and client
