@@ -42,51 +42,41 @@ def get_access_token():
 # === Open Messaging API Functions ===
 
 def send_open_message(
-    from_address: str,
     to_address: str,
     message_content: str,
-    deployment_id: str = None,
-    use_existing_conversation: bool = False
+    deployment_id: str = "c37736c1-5032-440b-9ea0-54b2d3b5860e"
 ):
     """
-    Sends an agentless outbound message via Genesys Open Messaging (agentless API).
-    Uses /api/v2/conversations/messages/agentless endpoint.
-    See: https://developer.genesys.cloud/commdigital/digital/openmessaging/outboundMessages
-
+    Sends an outbound message via Genesys Cloud Conversations API.
+    Uses /api/v2/conversations/messages endpoint per official documentation.
+    
     Args:
-        from_address (str): The sender address (e.g., business phone/email/ID)
         to_address (str): The recipient address (e.g., customer phone/email/ID)
         message_content (str): The message body
-        deployment_id (str, optional): Open Messaging deployment ID. Defaults to global setting.
-        use_existing_conversation (bool, optional): Attach to existing conversation if possible. Default False.
+        deployment_id (str): Open Messaging deployment ID. Defaults to your deployment.
 
     Returns:
         dict: Response from Genesys API
     """
-    deployment_id = deployment_id or GENESYS_DEPLOYMENT_ID
     access_token = get_access_token()
-    # Try the standard agentless endpoint first
-    url = f"{BASE_URL}/api/v2/conversations/messages/agentless"
-    
-    # Alternative endpoint to try if the first fails
-    alt_url = f"{BASE_URL}/api/v2/conversations/messages"
+    # Use the correct Conversations Messages API endpoint
+    url = f"{BASE_URL}/api/v2/conversations/messages"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
+    # Format payload according to official Genesys Cloud API documentation
     payload = {
-        "fromAddress": from_address,
+        "fromAddress": deployment_id,  # Use deployment ID as fromAddress
         "toAddress": to_address,
         "textBody": message_content,
-        "toAddressMessengerType": "open",  # Correct field name from official docs
-        "deploymentId": deployment_id,
-        "useExistingConversation": use_existing_conversation
+        "messengerType": "open"
     }
 
-    logger.info(f"🚀 GENESYS: Sending agentless Open Messaging message to {to_address}: {message_content[:50]}...")
-    logger.info(f"🔍 DEBUG: OpenMessaging API URL: {url}")
+    logger.info(f"🚀 GENESYS: Sending Open Messaging message to {to_address}: {message_content[:50]}...")
+    logger.info(f"🔍 DEBUG: Open Messaging API URL: {url}")
     logger.info(f"🔍 DEBUG: Full JSON Payload: {payload}")
     logger.info(f"🔍 DEBUG: Request headers: {headers}")
     response = requests.post(url, headers=headers, json=payload)
@@ -95,7 +85,7 @@ def send_open_message(
     logger.info(f"🔍 DEBUG: Response headers: {dict(response.headers)}")
 
     if response.status_code not in (200, 202):
-        logger.error(f"Error sending agentless message: {response.status_code} - {response.text}")
+        logger.error(f"Error sending Open Messaging message: {response.status_code} - {response.text}")
         raise Exception(f"Send failed: {response.text}")
 
     return response.json() if response.content else {}
