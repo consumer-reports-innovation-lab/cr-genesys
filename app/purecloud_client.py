@@ -76,6 +76,7 @@ def send_open_message(
         "fromAddress": from_address,
         "toAddress": to_address,
         "textBody": message_content,
+        "messengerType": "open",
         "deploymentId": deployment_id,
         "useExistingConversation": use_existing_conversation
     }
