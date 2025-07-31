@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
     if (!dev && !isServer) {
       // Disable minification for client-side production bundles
       config.optimization.minimize = false;
+      
+      // Use React development builds for better error messages
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'react$': 'react/index.js',
+        'react-dom$': 'react-dom/index.js',
+      };
+      
+      // Enable React development mode for better debugging
+      config.plugins.push(
+        new config.webpack.DefinePlugin({
+          __DEV__: JSON.stringify(true),
+        })
+      );
     }
     return config;
   },
