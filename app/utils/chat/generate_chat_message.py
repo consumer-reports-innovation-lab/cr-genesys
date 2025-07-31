@@ -72,7 +72,7 @@ class CheckGenesysSessionRequest(BaseModel):
 
 class CreateGenesysSessionRequest(BaseModel):
     chat_id: str = Field(..., description="Chat ID to create a Genesys session for")
-    customer_id: str = Field(None, description="Optional customer identifier")
+    customer_id: Optional[str] = Field(None, description="Optional customer identifier")
 
 class GenesysSessionResponse(BaseModel):
     success: bool = Field(..., description="Whether the operation was successful")
@@ -194,7 +194,7 @@ class CheckGenesysSessionRequest(BaseModel):
 
 class CreateGenesysSessionRequest(BaseModel):
     chat_id: str = Field(..., description="Chat ID to create a Genesys session for")
-    customer_id: str = Field(None, description="Optional customer identifier")
+    customer_id: Optional[str] = Field(None, description="Optional customer identifier")
 
 class GenesysSessionResponse(BaseModel):
     success: bool
