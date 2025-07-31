@@ -66,6 +66,18 @@ class GenesysResponseDecision(BaseModel):
     user_question: str = Field(None, description="Question to ask the user if should_ask_user is True")
     explanation: str = Field(..., description="Brief explanation of the response decision")
 
+class CheckGenesysSessionRequest(BaseModel):
+    chat_id: str = Field(..., description="Chat ID to check for an active Genesys session")
+
+class CreateGenesysSessionRequest(BaseModel):
+    chat_id: str = Field(..., description="Chat ID to create a Genesys session for")
+    customer_id: str = Field(None, description="Optional customer identifier")
+
+class GenesysSessionResponse(BaseModel):
+    success: bool = Field(..., description="Whether the operation was successful")
+    message: str = Field(..., description="Status message")
+    session_id: str = Field(None, description="Session ID if successful")
+
 def decide_message_routing(user_message: str, chat_history: list, db: Session, chat_id: str) -> MessageRoutingDecision:
     """
     Use LLM to decide how to route a user message - respond directly, send to Genesys, or both.
