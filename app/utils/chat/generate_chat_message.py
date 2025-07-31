@@ -91,12 +91,20 @@ Decision guidelines:
 3. For simple greetings, basic info, FAQ-type questions -> respond directly
 4. If uncertain -> respond directly with helpful info but offer to connect to agent
 
-When sending to Genesys, provide:
-- should_send_to_genesys: true
-- genesys_message: A professional summary for the agent (e.g., "Customer is requesting help with billing issue regarding their subscription renewal")
-- user_response: (if also responding to user) What to tell the user
+REQUIRED JSON FORMAT:
+{
+  "should_respond_to_user": boolean,  // Always required - whether to send a response to the user
+  "should_send_to_genesys": boolean,  // Always required - whether to send message to live agent
+  "explanation": "string",            // Always required - brief reason for your decision
+  "user_response": "string or null",  // Optional - what to tell the user (if should_respond_to_user is true)
+  "genesys_message": "string or null" // Optional - professional summary for agent (if should_send_to_genesys is true)
+}
 
-Respond with a JSON object containing your routing decision."""
+Examples:
+- Simple greeting: {"should_respond_to_user": true, "should_send_to_genesys": false, "explanation": "Simple greeting", "user_response": "Hi! How can I help you today?", "genesys_message": null}
+- Agent request: {"should_respond_to_user": true, "should_send_to_genesys": true, "explanation": "User requested human agent", "user_response": "I'm connecting you to a live agent", "genesys_message": "Customer requesting human assistance"}
+
+Respond with a JSON object exactly matching this format."""
 
     try:
         response = client.chat.completions.create(
