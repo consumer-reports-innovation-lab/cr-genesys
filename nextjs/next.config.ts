@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import webpack from 'webpack';
 
 const nextConfig: NextConfig = {
   // Enable source maps and disable minification for debugging
@@ -12,16 +13,9 @@ const nextConfig: NextConfig = {
       // Disable minification for client-side production bundles
       config.optimization.minimize = false;
       
-      // Use React development builds for better error messages
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'react$': 'react/index.js',
-        'react-dom$': 'react-dom/index.js',
-      };
-      
       // Enable React development mode for better debugging
       config.plugins.push(
-        new config.webpack.DefinePlugin({
+        new webpack.DefinePlugin({
           __DEV__: JSON.stringify(true),
         })
       );
