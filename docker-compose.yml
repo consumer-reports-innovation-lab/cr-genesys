@@ -14,7 +14,6 @@ services:
       - GENESYS_CLOUD_CLIENT_SECRET=${GENESYS_CLOUD_CLIENT_SECRET}
       - MAILCHIMP_TRANSACTIONAL_API_KEY=${MAILCHIMP_TRANSACTIONAL_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - PORT=8000
 
 
   db:
@@ -47,16 +46,13 @@ services:
     container_name: nextjs_app
     ports:
       - "3000:3000"
-    volumes:
-      - ./nextjs:/app
-    working_dir: /app
-    command: sh -c "npm run dev"
+    command: sh -c "npm run start -- -p 3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - INTERNAL_API_URL=http://web:8000 # For server-to-server calls within Docker
       - NEXT_PUBLIC_API_URL=http://localhost:8000 # For client-side calls (browser to host-mapped port)
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_SECRET=1YL3ncgIwkZc7/Zz82VRMhKexambiZUDNmVD+sBmCTU=
       - NEXTAUTH_URL=http://localhost:3000
     depends_on:
       - web
