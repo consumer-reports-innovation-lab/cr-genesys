@@ -277,7 +277,8 @@ def generate_chat_message(
     user_email: str = None
 ) -> Message:
     logger.info(f"Generating response for chat_id: {chat_id}, question: {question}")
-    logger.info(f"🔍 DEBUG: GENESYS_DEPLOYMENT_ID={GENESYS_DEPLOYMENT_ID}, user_email={user_email}")
+    logger.info(f"🔍 DEBUG: GENESYS_DEPLOYMENT_ID='{GENESYS_DEPLOYMENT_ID}' (bool: {bool(GENESYS_DEPLOYMENT_ID)}), user_email={user_email}")
+    logger.info(f"🔍 DEBUG: Raw env var GENESYS_OPEN_MESSAGING_DEPLOYMENT_ID='{os.environ.get('GENESYS_OPEN_MESSAGING_DEPLOYMENT_ID', 'NOT_SET')}'")
 
     # Save the user's question as a Message
     user_message = Message(
