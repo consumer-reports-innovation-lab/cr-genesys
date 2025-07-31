@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 # Env-based configuration
 GENESYS_DEPLOYMENT_ID = settings.GENESYS_OPEN_MESSAGING_DEPLOYMENT_ID
-GENESYS_REGION = "us-east-1"  # Change this if you're using a different Genesys Cloud region
-BASE_URL = f"https://api.{GENESYS_REGION}.pure.cloud"
+GENESYS_REGION = "mypurecloud"  # Updated for mypurecloud.com region
+BASE_URL = f"https://api.{GENESYS_REGION}.com"
 
 def get_purecloud_client():
     """
