@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import webpack from 'webpack';
 
 const nextConfig: NextConfig = {
   // Enable source maps and disable minification for debugging
@@ -8,7 +7,7 @@ const nextConfig: NextConfig = {
     // Optional: Keep component names readable
     optimizePackageImports: ["lucide-react"],
   },
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev, isServer, webpack }) => {
     if (!dev && !isServer) {
       // Disable minification for client-side production bundles
       config.optimization.minimize = false;
