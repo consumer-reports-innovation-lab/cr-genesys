@@ -47,8 +47,9 @@ def send_open_message(
     deployment_id: str = "c37736c1-5032-440b-9ea0-54b2d3b5860e"
 ):
     """
-    Sends an outbound message via Genesys Cloud Conversations API.
-    Uses /api/v2/conversations/messages endpoint per official documentation.
+    Sends a message to Genesys Cloud Open Messaging inbound flow.
+    Uses the Open Messaging API to send messages TO the inbound message flow.
+    Based on: https://developer.genesys.cloud/commdigital/digital/openmessaging/inboundTextMessages
     
     Args:
         to_address (str): The recipient address (e.g., customer phone/email/ID)
@@ -59,20 +60,20 @@ def send_open_message(
         dict: Response from Genesys API
     """
     access_token = get_access_token()
-    # Use the correct Conversations Messages API endpoint
-    url = f"{BASE_URL}/api/v2/conversations/messages"
+    # Use the Open Messaging inbound text messages API endpoint
+    url = f"{BASE_URL}/api/v2/conversations/messaging/integrations/open/inbound"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
-    # Format payload according to official Genesys Cloud API documentation
+    # Format payload for Open Messaging inbound API
     payload = {
-        "fromAddress": deployment_id,  # Use deployment ID as fromAddress
-        "toAddress": to_address,
+        "fromAddress": to_address,  # Customer's address
+        "toAddress": deployment_id,  # Your deployment ID (where message goes TO)
         "textBody": message_content,
-        "messengerType": "open"
+        "toAddressMessengerType": "open"
     }
 
     logger.info(f"🚀 GENESYS: Sending Open Messaging message to {to_address}: {message_content[:50]}...")
