@@ -49,7 +49,7 @@ class Chat(Base):
     
     # Genesys Open Messaging fields
     genesys_open_message_session_id = Column(String, nullable=True)
-    genesys_open_message_active = Column(Boolean, default=False)
+    genesys_open_message_active = Column(Boolean, default=True)
 
     user = relationship('User', back_populates='chats')
     messages = relationship('Message', back_populates='chat')

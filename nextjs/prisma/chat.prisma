@@ -10,7 +10,7 @@ model Chat {
 
   // Genesys Open Messaging fields
   genesysOpenMessageSessionId String? @map("genesys_open_message_session_id")
-  genesysOpenMessageActive    Boolean @default(false) @map("genesys_open_message_active")
+  genesysOpenMessageActive    Boolean @default(true) @map("genesys_open_message_active")
 
   @@map("chats")
 }
