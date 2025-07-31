@@ -80,9 +80,7 @@ def send_open_message(
         "fromAddress": from_address,
         "toAddress": to_address,
         "textBody": message_content,
-        "messengerType": "open",
-        "messenger_type": "open", # Try underscore version
-        "MessengerType": "open",  # Try uppercase version
+        "toAddressMessengerType": "open",  # Correct field name from official docs
         "deploymentId": deployment_id,
         "useExistingConversation": use_existing_conversation
     }
