@@ -72,6 +72,12 @@ async def handle_webhook(
         # Log flow information for debugging
         if flow_id or flow_name:
             logger.info(f"Message processed through Genesys flow: {flow_name} (ID: {flow_id})")
+            
+            # Specific handling for InboundMessageFeedbackFlow
+            if flow_name == "InboundMessageFeedbackFlow" or flow_id == "2f2c833f-edf0-4c44-8979-afd75d94ed55":
+                logger.info("✅ FEEDBACK FLOW DETECTED: Message came through InboundMessageFeedbackFlow - feedback collection workflow activated")
+                # The flow will handle bot interaction and feedback collection automatically
+                # Our webhook just needs to process the message normally
         
         # Extract and validate recipient email
         recipient_email = message.channel.get("to", {}).get("id")
