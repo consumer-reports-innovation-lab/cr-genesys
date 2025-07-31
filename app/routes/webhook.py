@@ -89,7 +89,7 @@ async def handle_webhook(
     }
     """
     try:
-        logger.info(f"✅ GENESYS WEBHOOK: Received message from {message.originatingEntity or 'Unknown'}: {message.text[:100]}...")
+        logger.info(f"✅ GENESYS WEBHOOK: Received {message.originatingEntity or 'system'} message: {message.text[:100]}...")
         
         # Extract chat ID from recipient email
         recipient_email = message.channel.to.id
@@ -115,11 +115,11 @@ async def handle_webhook(
             logger.warning(f"Email verification failed. Expected {owner_email}, got {base_email}")
             raise HTTPException(status_code=403, detail="Email verification failed")
 
-        # Create a new message in the database
+        # Create a new message in the database (mark as system since it's from Genesys/bot)
         db_message = Message(
             content=message.text,
             chat_id=chat_id,
-            is_system=False,
+            is_system=True,  # Mark as system message since it's from Genesys bot
             is_markdown=True,
             sent_to_genesys=True,
             genesys_message_id=message.id,
@@ -135,7 +135,7 @@ async def handle_webhook(
             'id': str(db_message.id),
             'content': message.text,
             'chatId': chat_id,
-            'isSystem': False,
+            'isSystem': True,  # Mark as system message for frontend
             'isMarkdown': True,
             'sentToGenesys': True,
             'genesysMessageId': message.id,
@@ -157,7 +157,7 @@ async def handle_webhook(
 
         # Broadcast the message to the chat room via Socket.IO
         await sio.emit('new_message', socket_message, room=chat_id)
-        logger.info(f"✅ GENESYS: Message broadcasted to chat {chat_id} via Socket.IO")
+        logger.info(f"✅ GENESYS: {message.originatingEntity or 'System'} message broadcasted to chat {chat_id} via Socket.IO")
 
         return {"status": "success", "messageId": message.id}
 
