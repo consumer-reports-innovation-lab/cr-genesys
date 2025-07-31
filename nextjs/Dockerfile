@@ -14,11 +14,10 @@ COPY . .
 # Generate Prisma client (disable SSL verification for certificate issues)
 RUN NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate
 
-# Build the application
-RUN npm run build
+# Skip build for development mode (temporary for debugging)
 
 # Expose port (will be overridden by Render)
 EXPOSE 3000
 
-# Start production server with migrations and dynamic port
-CMD ["sh", "-c", "NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma migrate deploy && NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate && npm run start -- -p ${PORT:-3000}"]
+# Start development server with migrations and dynamic port (temporary for debugging)
+CMD ["sh", "-c", "NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma migrate deploy && NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate && npm run dev -- -p ${PORT:-3000}"]
