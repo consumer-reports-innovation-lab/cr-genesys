@@ -1,6 +1,8 @@
 import os
 import logging
 import requests
+import uuid
+from datetime import datetime
 from config import settings
 import PureCloudPlatformClientV2
 
@@ -61,19 +63,27 @@ def send_open_message(
     """
     access_token = get_access_token()
     # Use the Open Messaging inbound text messages API endpoint
-    url = f"{BASE_URL}/api/v2/conversations/messaging/integrations/open/inbound"
+    url = f"{BASE_URL}/api/v2/conversations/messages/f58dd26d-442c-45a2-a8de-5c9c79696864/inbound/open/message"
 
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
-    # Format payload for Open Messaging inbound API
+    # Format payload for Open Messaging inbound API per official documentation
     payload = {
-        "fromAddress": to_address,  # Customer's address
-        "toAddress": deployment_id,  # Your deployment ID (where message goes TO)
-        "textBody": message_content,
-        "toAddressMessengerType": "open"
+        "channel": {
+            "messageId": str(uuid.uuid4()),  # Unique message ID
+            "from": {
+                "nickname": "Chat User",
+                "id": to_address,  # User's email address
+                "idType": "email",
+                "firstName": "Chat",
+                "lastName": "User"
+            },
+            "time": datetime.utcnow().isoformat() + "Z"
+        },
+        "text": message_content
     }
 
     logger.info(f"🚀 GENESYS: Sending Open Messaging message to {to_address}: {message_content[:50]}...")
