@@ -150,7 +150,6 @@ def list_inbound_message_flows():
     }
     
     params = {
-        "type": "inboundMessage",
         "pageSize": 100
     }
     
