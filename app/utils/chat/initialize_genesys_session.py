@@ -2,7 +2,7 @@ import logging
 import os
 from sqlalchemy.orm import Session
 from models import Chat
-from purecloud_client import send_open_message, GENESYS_DEPLOYMENT_ID
+from purecloud_client import send_open_message, GENESYS_DEPLOYMENT_ID, list_inbound_message_flows
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -63,3 +63,18 @@ def initialize_genesys_session(db: Session, chat_id: str, user_email: str = None
     except Exception as e:
         logger.error(f"Error initializing Genesys Open Messaging session: {e}")
         return False
+
+def get_available_flows():
+    """
+    Helper function to list available inbound message flows for debugging/configuration.
+    
+    Returns:
+        list: List of available flows
+    """
+    try:
+        flows = list_inbound_message_flows()
+        logger.info(f"Available Genesys inbound message flows: {[f.get('name') for f in flows]}")
+        return flows
+    except Exception as e:
+        logger.error(f"Error retrieving Genesys flows: {e}")
+        return []

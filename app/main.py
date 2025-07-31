@@ -84,6 +84,7 @@ def purecloud_permissions():
 
 from typing import List
 from routes.webhook import router as webhook_router
+from utils.chat.initialize_genesys_session import get_available_flows
 
 @fastapi_app.get("/chats")
 def get_user_chats(current_user=Depends(auth_guard), db=Depends(get_db)):
@@ -148,6 +149,17 @@ async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, cur
     }, room=str(current_user.id), namespace='/ws')  # Ensure user_id is a string
     
     return new_message
+
+@fastapi_app.get("/genesys/flows")
+def list_flows():
+    """
+    List available Genesys inbound message flows for debugging/configuration.
+    """
+    try:
+        flows = get_available_flows()
+        return {"flows": flows}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving flows: {e}")
 
 # Create Socket.IO ASGI app with correct configuration
 socket_app = socketio.ASGIApp(sio, other_asgi_app=fastapi_app, socketio_path='/ws/socket.io')

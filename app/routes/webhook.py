@@ -65,6 +65,14 @@ async def handle_webhook(
     }
     """
     try:
+        # Extract flow information if available
+        flow_id = message.metadata.get("flowId")
+        flow_name = message.metadata.get("flowName")
+        
+        # Log flow information for debugging
+        if flow_id or flow_name:
+            logger.info(f"Message processed through Genesys flow: {flow_name} (ID: {flow_id})")
+        
         # Extract and validate recipient email
         recipient_email = message.channel.get("to", {}).get("id")
         if not recipient_email:

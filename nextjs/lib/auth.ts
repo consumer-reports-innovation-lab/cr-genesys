@@ -122,7 +122,6 @@ export const authOptions: AuthOptions = {
       if (session.user && token) {
         session.user.id = token.id as string;
         session.deviceId = token.deviceId as string;
-        session.accessToken = token.accessToken as string;
       }
       session.accessToken = token.sessionToken as string;
 

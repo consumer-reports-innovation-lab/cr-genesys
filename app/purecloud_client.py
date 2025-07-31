@@ -135,3 +135,56 @@ def get_permissions():
     api_client = get_purecloud_client()
     auth_api = PureCloudPlatformClientV2.AuthorizationApi(api_client)
     return auth_api.get_authorization_permissions()
+
+# === InboundMessageFlow Functions ===
+
+def list_inbound_message_flows():
+    """
+    Lists all inbound message flows in your Genesys org.
+    """
+    access_token = get_access_token()
+    url = f"{BASE_URL}/api/v2/flows"
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    params = {
+        "type": "inboundmessage",
+        "pageSize": 100
+    }
+    
+    response = requests.get(url, headers=headers, params=params)
+    if response.status_code != 200:
+        logger.error(f"Error listing inbound message flows: {response.status_code} - {response.text}")
+        raise Exception(f"List flows failed: {response.text}")
+    
+    flows = response.json().get("entities", [])
+    return flows
+
+def trigger_flow_action(conversation_id: str, action_data: dict):
+    """
+    Triggers a specific action within a Genesys flow.
+    
+    Args:
+        conversation_id (str): The conversation ID
+        action_data (dict): Data to send to the flow action
+        
+    Returns:
+        dict: Response from Genesys API
+    """
+    access_token = get_access_token()
+    url = f"{BASE_URL}/api/v2/conversations/messages/{conversation_id}/actions"
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.post(url, headers=headers, json=action_data)
+    
+    if response.status_code not in (200, 202):
+        logger.error(f"Error triggering flow action: {response.status_code} - {response.text}")
+        raise Exception(f"Flow action failed: {response.text}")
+    
+    return response.json() if response.content else {}
