@@ -21,4 +21,4 @@ RUN npm run build
 EXPOSE 3000
 
 # Start production server with migrations and dynamic port
-CMD ["sh", "-c", "NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma migrate deploy && NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate && npm run start -- -p ${PORT:-3000}"]
+CMD ["sh", "-c", "NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma migrate deploy && NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate && npm run start -- -H 0.0.0.0 -p ${PORT:-3000}"]
