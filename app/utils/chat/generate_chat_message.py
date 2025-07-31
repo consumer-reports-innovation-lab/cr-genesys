@@ -307,7 +307,13 @@ def generate_chat_message(
             db.refresh(chat)
         try:
             # Construct addresses for Genesys Open Messaging
-            from_address = os.environ.get("GENESYS_FROM_ADDRESS", "noreply@example.com")
+            # Try different fromAddress options for Genesys recipient validation
+            genesys_from_address = os.environ.get("GENESYS_FROM_ADDRESS")
+            if genesys_from_address:
+                from_address = genesys_from_address
+            else:
+                # Use integration name as fallback (should be registered as recipient)
+                from_address = "ConsumerReportsOM"
             to_address = None
             logger.info(f"🔍 DEBUG: user_email='{user_email}', from_address='{from_address}'")
             if user_email and '@' in user_email:
@@ -477,7 +483,13 @@ def generate_chat_message(
             db.refresh(chat)
         try:
             # Construct addresses for Genesys Open Messaging
-            from_address = os.environ.get("GENESYS_FROM_ADDRESS", "noreply@example.com")
+            # Try different fromAddress options for Genesys recipient validation
+            genesys_from_address = os.environ.get("GENESYS_FROM_ADDRESS")
+            if genesys_from_address:
+                from_address = genesys_from_address
+            else:
+                # Use integration name as fallback (should be registered as recipient)
+                from_address = "ConsumerReportsOM"
             to_address = None
             logger.info(f"🔍 DEBUG: AI response - user_email='{user_email}', from_address='{from_address}'")
             if user_email and '@' in user_email:
