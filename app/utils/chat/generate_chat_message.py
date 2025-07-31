@@ -99,9 +99,9 @@ You must respond with a JSON object containing these exact fields:
 - genesys_message: string or null (optional)
 
 Examples:
-{"should_respond_to_user": true, "should_send_to_genesys": false, "explanation": "Simple greeting", "user_response": "Hi! How can I help you today?", "genesys_message": null}
+{{"should_respond_to_user": true, "should_send_to_genesys": false, "explanation": "Simple greeting", "user_response": "Hi! How can I help you today?", "genesys_message": null}}
 
-{"should_respond_to_user": true, "should_send_to_genesys": true, "explanation": "User requested human agent", "user_response": "I'm connecting you to a live agent", "genesys_message": "Customer requesting human assistance"}
+{{"should_respond_to_user": true, "should_send_to_genesys": true, "explanation": "User requested human agent", "user_response": "I'm connecting you to a live agent", "genesys_message": "Customer requesting human assistance"}}
 
 Respond only with valid JSON."""
 
