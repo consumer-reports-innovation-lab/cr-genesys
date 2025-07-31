@@ -302,17 +302,30 @@ def generate_chat_message(
         if needs_refresh:
             db.refresh(chat)
         try:
-            # Send message to Genesys Open Messaging
-            genesys_response = send_open_message(
-                user_token=chat.genesys_open_message_session_id,
-                message_content=question
-            )
-            # Update the message record to indicate it was sent to Genesys
-            user_message.sent_to_genesys = True
-            if hasattr(genesys_response, 'id'):
-                user_message.genesys_message_id = genesys_response.id
-            db.commit()
-            logger.info(f"Message sent to Genesys for chat {chat_id}")
+            # Construct addresses for Genesys Open Messaging
+            from_address = os.environ.get("GENESYS_FROM_ADDRESS", "noreply@example.com")
+            to_address = None
+            if user_email and '@' in user_email:
+                local_part, domain = user_email.split('@', 1)
+                to_address = f"{local_part}+{chat_id}@{domain}"
+            
+            if to_address:
+                # Send message to Genesys Open Messaging
+                genesys_response = send_open_message(
+                    from_address=from_address,
+                    to_address=to_address,
+                    message_content=question,
+                    deployment_id=GENESYS_DEPLOYMENT_ID,
+                    use_existing_conversation=True
+                )
+                # Update the message record to indicate it was sent to Genesys
+                user_message.sent_to_genesys = True
+                if hasattr(genesys_response, 'id'):
+                    user_message.genesys_message_id = genesys_response.id
+                db.commit()
+                logger.info(f"Message sent to Genesys for chat {chat_id}")
+            else:
+                logger.warning(f"Cannot send to Genesys: user_email not provided or invalid for chat {chat_id}")
         except Exception as e:
             logger.error(f"Failed to send message to Genesys: {e}")
             # Continue with local processing even if Genesys fails
@@ -448,17 +461,30 @@ def generate_chat_message(
         if needs_refresh:
             db.refresh(chat)
         try:
-            # Send message to Genesys Open Messaging
-            genesys_response = send_open_message(
-                user_token=chat.genesys_open_message_session_id,
-                message_content=content
-            )
-            # Update the message record to indicate it was sent to Genesys
-            new_message.sent_to_genesys = True
-            if hasattr(genesys_response, 'id'):
-                new_message.genesys_message_id = genesys_response.id
-            db.commit()
-            logger.info(f"Assistant response sent to Genesys for chat {chat_id}")
+            # Construct addresses for Genesys Open Messaging
+            from_address = os.environ.get("GENESYS_FROM_ADDRESS", "noreply@example.com")
+            to_address = None
+            if user_email and '@' in user_email:
+                local_part, domain = user_email.split('@', 1)
+                to_address = f"{local_part}+{chat_id}@{domain}"
+            
+            if to_address:
+                # Send message to Genesys Open Messaging
+                genesys_response = send_open_message(
+                    from_address=from_address,
+                    to_address=to_address,
+                    message_content=content,
+                    deployment_id=GENESYS_DEPLOYMENT_ID,
+                    use_existing_conversation=True
+                )
+                # Update the message record to indicate it was sent to Genesys
+                new_message.sent_to_genesys = True
+                if hasattr(genesys_response, 'id'):
+                    new_message.genesys_message_id = genesys_response.id
+                db.commit()
+                logger.info(f"Assistant response sent to Genesys for chat {chat_id}")
+            else:
+                logger.warning(f"Cannot send assistant response to Genesys: user_email not provided or invalid for chat {chat_id}")
         except Exception as e:
             logger.error(f"Failed to send assistant response to Genesys: {e}")
             # Continue even if sending to Genesys fails
