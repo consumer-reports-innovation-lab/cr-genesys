@@ -116,6 +116,8 @@ Examples:
 
 {{"should_respond_to_user": true, "should_send_to_genesys": true, "explanation": "User requested human agent", "user_response": "I'm connecting you to a live agent", "genesys_message": "Hi, I need help with my account and would like to speak with someone"}}
 
+{{"should_respond_to_user": false, "should_send_to_genesys": true, "explanation": "Billing complaint needs agent", "user_response": null, "genesys_message": "I was charged twice for my subscription this month and need this fixed. Can you help me get a refund for the duplicate charge?"}}
+
 Respond only with valid JSON."""
 
     try:
@@ -169,6 +171,10 @@ You must respond with a JSON object containing these exact fields:
 - explanation: string (required)
 - genesys_response: string or null (optional)
 - user_question: string or null (optional)
+
+Examples:
+- Agent asks "Can you confirm your email?" and you have it from chat: {{"should_respond_to_genesys": true, "should_ask_user": false, "explanation": "Have email from context", "genesys_response": "Yes, it's user@example.com", "user_question": null}}
+- Agent asks "Would you like a refund?" - only customer can decide: {{"should_respond_to_genesys": false, "should_ask_user": true, "explanation": "Customer decision needed", "genesys_response": null, "user_question": "The agent is asking if you'd like a refund for this issue. What would you prefer?"}}
 
 Respond only with valid JSON."""
 
