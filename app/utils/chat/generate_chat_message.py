@@ -110,7 +110,7 @@ Decision guidelines:
 1. If user explicitly asks for "human", "agent", "representative" -> send to Genesys + inform user
 2. For complex technical issues, billing, or complaints -> send to Genesys + optionally inform user  
 3. For simple greetings, basic info, FAQ-type questions -> respond directly
-4. For end-of-conversation responses (user says "that's all", "no thanks", etc.) when Genesys session active -> send to Genesys + provide summary to user
+4. For end-of-conversation responses (user says "that's all", "no thanks", etc.) when Genesys session active -> send to Genesys (closing message) + provide summary to user
 5. If uncertain -> respond directly with helpful info but offer to connect to agent
 
 You must respond with a JSON object containing these exact fields:
@@ -127,7 +127,7 @@ Examples:
 
 {{"should_respond_to_user": false, "should_send_to_genesys": true, "explanation": "Billing complaint needs agent", "user_response": null, "genesys_message": "I was charged twice for my subscription this month and need this fixed. Can you help me get a refund for the duplicate charge?"}}
 
-{{"should_respond_to_user": true, "should_send_to_genesys": true, "explanation": "User ending conversation", "user_response": "Your customer service session is now complete. Here's a summary of what was accomplished: [provide brief summary based on chat history]", "genesys_message": "no thank you"}}
+{{"should_respond_to_user": true, "should_send_to_genesys": true, "explanation": "User ending conversation", "user_response": "Your customer service session is now complete. Here's a summary of what was accomplished: [provide brief summary based on chat history]", "genesys_message": "that's all I needed, thank you"}}
 
 Note: When Genesys later asks for specific details like vendor name or account ID, respond with only that information (e.g., "Amazon" or "12345678").
 
@@ -181,9 +181,10 @@ When the agent asks for specific information, provide ONLY what they requested:
 - For any specific detail: provide only that detail without additional context or explanation
 
 Decision guidelines:
-- Respond directly to Genesys for: confirmations, acknowledgments, providing info you have from chat history, simple yes/no answers, end-of-conversation responses
+- Respond directly to Genesys for: confirmations, acknowledgments, providing info you have from chat history, simple yes/no answers
 - Ask user for info when: Genesys requests specific personal details, account numbers, preferences, or decisions only the customer can provide
-- For end-of-conversation (when agent asks "anything else?", "is that all?", etc.): respond "no" or "no thank you" to Genesys AND ask user for summary
+- For agent asking "anything else?", "is that all?", etc.: respond "no" or "no thank you" to Genesys AND provide summary to user
+- For agent farewell messages ("thanks and have a great day", "we're all set", etc.): do NOT respond to Genesys, just provide summary to user
 - Always be helpful and maintain the conversation flow
 
 Consider the conversation context and determine the best approach.
@@ -199,7 +200,8 @@ Examples:
 - Agent asks "Can you confirm your email?" and you have it: {{"should_respond_to_genesys": true, "should_ask_user": false, "explanation": "Have email from context", "genesys_response": "user@example.com", "user_question": null}}
 - Agent asks "What's your account ID?" and you have it: {{"should_respond_to_genesys": true, "should_ask_user": false, "explanation": "Have account ID from context", "genesys_response": "12345678", "user_question": null}}
 - Agent asks "Is this correct?" about something you can verify: {{"should_respond_to_genesys": true, "should_ask_user": false, "explanation": "Can confirm from context", "genesys_response": "yes", "user_question": null}}
-- Agent asks "Is there anything else I can help you with?": {{"should_respond_to_genesys": true, "should_ask_user": true, "explanation": "End of conversation", "genesys_response": "no thank you", "user_question": "Your customer service session is complete. Let me provide you with a summary of what was accomplished."}}
+- Agent asks "Is there anything else I can help you with?": {{"should_respond_to_genesys": true, "should_ask_user": true, "explanation": "Agent asking for more needs", "genesys_response": "no thank you", "user_question": "Your customer service session is complete. Let me provide you with a summary of what was accomplished."}}
+- Agent says "We successfully collected your feedback. Thanks and have a great day.": {{"should_respond_to_genesys": false, "should_ask_user": true, "explanation": "Agent farewell message", "genesys_response": null, "user_question": "Your customer service session is complete. Let me provide you with a summary of what was accomplished."}}
 - Agent asks "Would you like a refund?" - only customer can decide: {{"should_respond_to_genesys": false, "should_ask_user": true, "explanation": "Customer decision needed", "genesys_response": null, "user_question": "The agent is asking if you'd like a refund for this issue. What would you prefer?"}}
 
 Respond only with valid JSON."""
