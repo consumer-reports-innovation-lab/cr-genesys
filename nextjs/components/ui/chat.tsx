@@ -1,339 +1,100 @@
-"use client";
+'use client';
 
-import { ArrowDown, ThumbsDown, ThumbsUp } from "lucide-react";
-import {
-  forwardRef,
-  useCallback,
-  useRef,
-  useState,
-  type ReactElement,
-} from "react";
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Send } from 'lucide-react';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
 
-import { Button } from "@/components/ui/button";
-import { type Message, type MessagePart } from "@/components/ui/chat-message";
-import { CopyButton } from "@/components/ui/copy-button";
-import { MessageInput } from "@/components/ui/message-input";
-import { MessageList } from "@/components/ui/message-list";
-import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
-import { useAutoScroll } from "@/hooks/use-auto-scroll";
-import { cn } from "@/lib/utils";
+// Define the shape of a message object
+type Message = {
+  name: string;
+  message: string;
+  isUser?: boolean; // Flag to identify user's own messages
+};
 
-interface ChatPropsBase {
-  handleSubmit: (
-    event?: { preventDefault?: () => void },
-    options?: { experimental_attachments?: FileList }
-  ) => void;
-  messages: Array<Message>;
+// Define the props for the Chat component
+type ChatProps = {
+  messages: Message[];
   input: string;
-  className?: string;
-  handleInputChange: React.ChangeEventHandler<HTMLTextAreaElement>;
-  isGenerating: boolean;
-  stop?: () => void;
-  onRateResponse?: (
-    messageId: string,
-    rating: "thumbs-up" | "thumbs-down"
-  ) => void;
-  setMessages?: (messages: Message[]) => void;
-  transcribeAudio?: (blob: Blob) => Promise<string>;
-}
+  handleInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  isLoading: boolean;
+};
 
-interface ChatPropsWithoutSuggestions extends ChatPropsBase {
-  append?: never;
-  suggestions?: never;
-}
-
-interface ChatPropsWithSuggestions extends ChatPropsBase {
-  append: (message: { role: "user"; content: string }) => void;
-  suggestions: string[];
-}
-
-type ChatProps = ChatPropsWithoutSuggestions | ChatPropsWithSuggestions;
-
-export function Chat({
+export const Chat = ({
   messages,
-  handleSubmit,
   input,
   handleInputChange,
-  stop,
-  isGenerating,
-  append,
-  suggestions,
-  className,
-  onRateResponse,
-  setMessages,
-  transcribeAudio,
-}: ChatProps) {
-  const lastMessage = messages.at(-1);
-  const isEmpty = messages.length === 0;
-  const isTyping = lastMessage?.role === "user";
+  handleSubmit,
+  isLoading,
+}: ChatProps) => {
+  const [isSending, setIsSending] = useState(false);
 
-  const messagesRef = useRef(messages);
-  messagesRef.current = messages;
+  // Wrapper for the submit handler to manage the sending state
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    setIsSending(true);
+    handleSubmit(e);
+    setIsSending(false);
+  };
 
-  // Enhanced stop function that marks pending tool calls as cancelled
-  const handleStop = useCallback(() => {
-    stop?.();
+  return (
+    <div className="flex flex-col h-full">
+      {/* Scrollable chat history */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={cn(
+              'flex items-start gap-3',
+              m.isUser && 'flex-row-reverse', // Align user messages to the right
+            )}
+          >
+            {/* Avatar */}
+            <Avatar className="w-8 h-8">
+              <AvatarImage />
+              <AvatarFallback>
+                {m.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')}
+              </AvatarFallback>
+            </Avatar>
 
-    if (!setMessages) return;
-
-    const latestMessages = [...messagesRef.current];
-    const lastAssistantMessage = latestMessages.findLast(
-      (m) => m.role === "assistant"
-    );
-
-    if (!lastAssistantMessage) return;
-
-    let needsUpdate = false;
-    let updatedMessage = { ...lastAssistantMessage };
-
-    if (lastAssistantMessage.toolInvocations) {
-      const updatedToolInvocations = lastAssistantMessage.toolInvocations.map(
-        (toolInvocation) => {
-          if (toolInvocation.state === "call") {
-            needsUpdate = true;
-            return {
-              ...toolInvocation,
-              state: "result",
-              result: {
-                content: "Tool execution was cancelled",
-                __cancelled: true, // Special marker to indicate cancellation
-              },
-            } as const;
-          }
-          return toolInvocation;
-        }
-      );
-
-      if (needsUpdate) {
-        updatedMessage = {
-          ...updatedMessage,
-          toolInvocations: updatedToolInvocations,
-        };
-      }
-    }
-
-    if (lastAssistantMessage.parts && lastAssistantMessage.parts.length > 0) {
-      const updatedParts = lastAssistantMessage.parts.map(
-        (part: MessagePart) => {
-          if (
-            part.type === "tool-invocation" &&
-            part.toolInvocation &&
-            part.toolInvocation.state === "call"
-          ) {
-            needsUpdate = true;
-            return {
-              ...part,
-              toolInvocation: {
-                ...part.toolInvocation,
-                state: "result",
-                result: {
-                  content: "Tool execution was cancelled",
-                  __cancelled: true,
-                },
-              },
-            };
-          }
-          return part;
-        }
-      );
-
-      if (needsUpdate) {
-        updatedMessage = {
-          ...updatedMessage,
-          parts: updatedParts,
-        };
-      }
-    }
-
-    if (needsUpdate) {
-      const messageIndex = latestMessages.findIndex(
-        (m) => m.id === lastAssistantMessage.id
-      );
-      if (messageIndex !== -1) {
-        latestMessages[messageIndex] = updatedMessage;
-        setMessages(latestMessages);
-      }
-    }
-  }, [stop, setMessages, messagesRef]);
-
-  const messageOptions = useCallback(
-    (message: Message) => ({
-      actions: onRateResponse ? (
-        <>
-          <div className="border-r pr-1">
-            <CopyButton
-              content={message.content}
-              copyMessage="Copied response to clipboard!"
-            />
+            {/* Message Bubble */}
+            <div
+              className={cn(
+                'rounded-lg p-3 max-w-xs',
+                // --- DIAGNOSTIC UI CHANGE ---
+                // Applying a bright pink background to user messages
+                m.isUser
+                  ? 'bg-pink-500 text-white' // User's message style
+                  : 'bg-gray-200', // Other messages' style
+              )}
+            >
+              <p className="font-semibold text-sm">{m.name}</p>
+              <p className="text-sm">{m.message}</p>
+            </div>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => onRateResponse(message.id, "thumbs-up")}
-          >
-            <ThumbsUp className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => onRateResponse(message.id, "thumbs-down")}
-          >
-            <ThumbsDown className="h-4 w-4" />
-          </Button>
-        </>
-      ) : (
-        <CopyButton
-          content={message.content}
-          copyMessage="Copied response to clipboard!"
-        />
-      ),
-    }),
-    [onRateResponse]
-  );
-
-  return (
-    <ChatContainer className={className}>
-      {isEmpty && append && suggestions ? (
-        <PromptSuggestions
-          label="Try these prompts ✨"
-          append={append}
-          suggestions={suggestions}
-        />
-      ) : null}
-
-      {messages.length > 0 ? (
-        <ChatMessages messages={messages}>
-          <MessageList
-            messages={messages}
-            isTyping={isTyping}
-            messageOptions={messageOptions}
-          />
-        </ChatMessages>
-      ) : null}
-
-      <ChatForm
-        className="mt-auto"
-        isPending={isGenerating || isTyping}
-        handleSubmit={handleSubmit}
-      >
-        {({ files, setFiles }) => (
-          <MessageInput
-            value={input}
-            onChange={handleInputChange}
-            allowAttachments
-            files={files}
-            setFiles={setFiles}
-            stop={handleStop}
-            isGenerating={isGenerating}
-            transcribeAudio={transcribeAudio}
-          />
-        )}
-      </ChatForm>
-    </ChatContainer>
-  );
-}
-Chat.displayName = "Chat";
-
-export function ChatMessages({
-  messages,
-  children,
-}: React.PropsWithChildren<{
-  messages: Message[];
-}>) {
-  const {
-    containerRef,
-    scrollToBottom,
-    handleScroll,
-    shouldAutoScroll,
-    handleTouchStart,
-  } = useAutoScroll([messages]);
-
-  return (
-    <div
-      className="grid grid-cols-1 overflow-y-auto pb-4"
-      ref={containerRef}
-      onScroll={handleScroll}
-      onTouchStart={handleTouchStart}
-    >
-      <div className="max-w-full [grid-column:1/1] [grid-row:1/1]">
-        {children}
+        ))}
       </div>
 
-      {!shouldAutoScroll && (
-        <div className="pointer-events-none flex flex-1 items-end justify-end [grid-column:1/1] [grid-row:1/1]">
-          <div className="sticky bottom-0 left-0 flex w-full justify-end">
-            <Button
-              onClick={scrollToBottom}
-              className="pointer-events-auto h-8 w-8 rounded-full ease-in-out animate-in fade-in-0 slide-in-from-bottom-1"
-              size="icon"
-              variant="ghost"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Message input form */}
+      <form
+        onSubmit={onSubmit}
+        className="border-t p-4 flex items-center gap-2"
+      >
+        <Input
+          value={input}
+          placeholder="Type a message..."
+          onChange={handleInputChange}
+          className="flex-1"
+        />
+        <Button type="submit" size="icon" disabled={isLoading || isSending}>
+          <Send className="w-4 h-4" />
+        </Button>
+      </form>
     </div>
   );
-}
-
-export const ChatContainer = forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn("grid max-h-full w-full grid-rows-[1fr_auto]", className)}
-      {...props}
-    />
-  );
-});
-ChatContainer.displayName = "ChatContainer";
-
-interface ChatFormProps {
-  className?: string;
-  isPending: boolean;
-  handleSubmit: (
-    event?: { preventDefault?: () => void },
-    options?: { experimental_attachments?: FileList }
-  ) => void;
-  children: (props: {
-    files: File[] | null;
-    setFiles: React.Dispatch<React.SetStateAction<File[] | null>>;
-  }) => ReactElement;
-}
-
-export const ChatForm = forwardRef<HTMLFormElement, ChatFormProps>(
-  ({ children, handleSubmit, className }, ref) => {
-    const [files, setFiles] = useState<File[] | null>(null);
-
-    const onSubmit = (event: React.FormEvent) => {
-      if (!files) {
-        handleSubmit(event);
-        return;
-      }
-
-      const fileList = createFileList(files);
-      handleSubmit(event, { experimental_attachments: fileList });
-      setFiles(null);
-    };
-
-    return (
-      <form ref={ref} onSubmit={onSubmit} className={className}>
-        {children({ files, setFiles })}
-      </form>
-    );
-  }
-);
-ChatForm.displayName = "ChatForm";
-
-function createFileList(files: File[] | FileList): FileList {
-  const dataTransfer = new DataTransfer();
-  for (const file of Array.from(files)) {
-    dataTransfer.items.add(file);
-  }
-  return dataTransfer.files;
-}
+};

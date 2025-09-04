@@ -45,7 +45,7 @@ check_colima() {
 # Set Docker host
 setup_docker_host() {
     print_status "Setting up Docker host..."
-    export DOCKER_HOST="unix:///Users/bunyan/.colima/default/docker.sock"
+    export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
     print_success "Docker host configured"
 }
 

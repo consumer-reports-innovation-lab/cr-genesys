@@ -1,201 +1,139 @@
 "use client";
 import { ChatHistory, ChatInput } from "@/components/chat";
-import { Card } from "@/components/ui/card";
-import { ApiError, getChat, getChatMessages } from "@/utils/api";
-import type { Message } from "@prisma/client";
+import type { ChatMessage } from "@/components/chat";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatSocketProvider } from "@/providers/chat-socket-provider";
+import { useEffect, useRef, useState } from "react";
+
+const createUIMessage = (
+  sender: string,
+  content: string,
+  messageType: ChatMessage['messageType']
+): ChatMessage => ({
+  id: crypto.randomUUID(),
+  sender,
+  content,
+  messageType,
+  createdAt: new Date(),
+});
+
+type ConversationState = 'start' | 'awaiting_model_number' | 'completed';
 
 export default function ChatPage() {
-  const { chatId } = useParams<{ chatId: string }>(); // Ensure chatId is typed
+  const { chatId } = useParams<{ chatId: string }>();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { data: session } = useSession();
-  const [messages, setMessages] = useState<Message[]>([]); // Initialize as empty array
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null); // Add ref for the scrollable div
-
-  // Define fetchData using useCallback
-  const fetchData = useCallback(async () => {
-    if (!chatId || !session) return; // Ensure chatId and session are available
-
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Fetch both chat and messages in parallel
-      const [{ chat: chatData }, fetchedMessages] = await Promise.all([
-        getChat(chatId, session, { includeChatHistory: false }),
-        getChatMessages(chatId, session),
-      ]);
-
-      setMessages(fetchedMessages);
-
-      // Return whether the chat is closed to be used in the effect
-      return chatData.status === "CLOSED";
-    } catch (err) {
-      console.error("Failed to fetch chat data:", err);
-      if (err instanceof ApiError) {
-        setError(`Error: ${err.message} (Status: ${err.status})`);
-      } else if (err instanceof Error) {
-        setError(`Error: ${err.message}`);
-      } else {
-        setError("An unknown error occurred while fetching chat data.");
-      }
-      setMessages([]); // Clear messages on error
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [chatId, session]); // Dependencies for useCallback
-
-  // State to track if chat is closed
-  const [isChatClosed, setIsChatClosed] = useState(false);
-
-  // Handle new messages from WebSocket
-  const handleNewMessage = useCallback(async () => {
-    try {
-      const updatedMessages = await getChatMessages(chatId, session!);
-      setMessages(updatedMessages);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to refresh messages');
-      console.error('Failed to refresh messages after receiving new message:', error);
-      setError(error.message);
-    }
-  }, [chatId, session]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  // Handle WebSocket errors
-  const handleSocketError = useCallback((error: Error) => {
-    console.error('WebSocket error:', error);
-    setError(`Connection error: ${error.message}`);
-  }, []);
+  const [conversationState, setConversationState] = useState<ConversationState>('start');
+  const [isAgentReplying, setIsAgentReplying] = useState(false);
 
-  // Define fetchMessages for backward compatibility
-  const fetchMessages = useCallback(async () => {
-    const isClosed = await fetchData();
-    if (isClosed !== undefined) {
-      setIsChatClosed(isClosed);
-    }
-  }, [fetchData]);
+  const userInitials = session?.user?.name
+    ? session.user.name.split(' ').map(n => n[0]).join('')
+    : 'U';
 
-  // Initial fetch on component mount or when chatId/session change
+  // --- LOCAL STORAGE: Load messages on initial render ---
   useEffect(() => {
-    const loadData = async () => {
-      const isClosed = await fetchData();
-      if (isClosed !== undefined) {
-        setIsChatClosed(isClosed);
+    if (typeof window !== 'undefined' && chatId) {
+      const savedMessages = localStorage.getItem(`chat_${chatId}`);
+      if (savedMessages) {
+        const parsedMessages = JSON.parse(savedMessages).map((msg: ChatMessage) => ({
+          ...msg,
+          createdAt: new Date(msg.createdAt),
+        }));
+        setMessages(parsedMessages);
       }
-    };
-    
-    // Only fetch data if we have a session
-    if (session) {
-      loadData();
     }
-  }, [fetchData, session]);
+  }, [chatId]);
 
-  // Effect to scroll to bottom when messages change
+  // --- LOCAL STORAGE: Save messages whenever they change ---
+  useEffect(() => {
+    if (typeof window !== 'undefined' && chatId && messages.length > 0) {
+      localStorage.setItem(`chat_${chatId}`, JSON.stringify(messages));
+    }
+  }, [messages, chatId]);
+
+  // Scroll to bottom when new messages are added
   useEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop =
-        scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-  }, [messages]); // Run whenever messages state updates
+  }, [messages]);
 
-  // --- Loading and Error States ---
-  if (isLoading && messages?.length === 0) {
-    // Show loading only initially
-    return (
-      <div className="flex items-center justify-center h-full">
-        Loading chat messages...
-      </div>
-    );
+  const addMessage = (message: ChatMessage) => {
+    setMessages(prev => [...prev, message]);
+  };
+
+  const agentReply = async (sender: string, content: string, thinkTime: number) => {
+    const thinkingMessage = createUIMessage(sender, "Thinking", "agent_thinking");
+    addMessage(thinkingMessage);
+    await new Promise(resolve => setTimeout(resolve, thinkTime));
+    
+    setMessages(prev => prev.filter(m => m.id !== thinkingMessage.id));
+    addMessage(createUIMessage(sender, content, "agent_action"));
+    
+    const wordCount = content.split(' ').length;
+    const animationDuration = wordCount * 60 + 1000;
+    await new Promise(resolve => setTimeout(resolve, animationDuration));
+  };
+
+  const systemReplyToUser = async (content: string) => {
+      addMessage(createUIMessage("AskCR", content, "system"));
+      const wordCount = content.split(' ').length;
+      const animationDuration = wordCount * 60 + 1000;
+      await new Promise(resolve => setTimeout(resolve, animationDuration));
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-red-600">
-        <p>Failed to load chat:</p>
-        <p>{error}</p>
-        {/* Optionally add a retry button */}
-        {/* <button onClick={fetchMessages}>Retry</button> */}
-      </div>
-    );
-  }
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim() || isAgentReplying) return;
 
-  // --- Render Chat ---
-  // Don't render if chatId is not available yet
-  if (!chatId) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        Loading...
-      </div>
-    );
-  }
+    setIsAgentReplying(true);
+    addMessage(createUIMessage("user", content, "user"));
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    if (conversationState === 'start') {
+      setConversationState('awaiting_model_number');
+
+      await agentReply("AskCR", "On it! Let me connect with Sharkninja's support system for you.", 2000);
+      await agentReply("AskCR", "Okay, I'm connected. Submitting your feedback about the packaging.", 1800);
+      
+      await agentReply("Genesys", "Thank you for contacting Sharkninja. To process your feedback, please provide the customer's full name and email address for verification.", 3000);
+      
+      await agentReply("AskCR", "Of course. The customer is Kennion Gubler, email kennion.gubler@example.com.", 2000);
+      
+      await agentReply("Genesys", "Verification successful. Please provide the product name and purchase date.", 3500);
+
+      await agentReply("AskCR", "The product is a 'Sharkninja Pro Blender'. Checking purchase history... purchased on August 15, 2025.", 2500);
+      
+      await agentReply("Genesys", "Information confirmed. For feedback related to `Packaging`, a product model number is required for our engineering and logistics teams. Please provide the model number.", 4000);
+
+      await agentReply("AskCR", "Got it. I don't have the model number in the purchase record. I'll ask the user for it now.", 1500);
+
+      await systemReplyToUser("The Sharkninja system needs a model number to file the feedback. Could you provide it for me, please? It's usually on the bottom of the blender.");
+
+    } else if (conversationState === 'awaiting_model_number') {
+      setConversationState('completed');
+      
+      await agentReply("AskCR", `Perfect, thank you! I'll pass this along. The model number is ${content}.`, 2500);
+      
+      const ticketId = `SN-${Math.floor(Math.random() * 90000) + 10000}`;
+      await agentReply("Genesys", `Model number ${content} accepted. Your feedback has been logged. Your ticket ID is ${ticketId}. Do you require further assistance?`, 3500);
+      
+      await agentReply("AskCR", "That's everything, thank you for your help!", 2000);
+
+      await systemReplyToUser(`All set! Your feedback is officially submitted to Sharkninja. The reference number is ${ticketId}. Thanks for helping me out! ✨`);
+    }
+    setIsAgentReplying(false);
+  };
 
   return (
-    <ChatSocketProvider 
-      chatId={chatId as string} 
-      onNewMessage={handleNewMessage}
-      onError={handleSocketError}
-    >
-      <div className="flex flex-col h-full">
-        <Card className="flex-1 overflow-hidden flex flex-col">
-          {isLoading && messages?.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              Loading messages...
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center h-full text-red-600">
-              Failed to load messages: {error}
-            </div>
-          ) : (
-            <ChatHistory
-              messages={
-                messages?.map((msg) => {
-                  // Safeguard against incomplete message data
-                  if (!msg || !msg.id || !msg.content) {
-                    console.warn('Incomplete message data:', msg);
-                    return null;
-                  }
-                  
-                  // Derive message type from existing fields instead of depending on messageType column
-                  const getMessageType = (): 'user' | 'system' | 'system_to_genesys' | 'genesys' => {
-                    // Messages from Genesys (have genesys_message_id and sent_to_genesys=true and is_system=true)
-                    if (msg.genesysMessageId && msg.sentToGenesys && msg.isSystem) {
-                      return 'genesys';
-                    }
-                    // System messages sent to Genesys (sent_to_genesys=true, is_system=true, but no genesys_message_id)
-                    if (msg.sentToGenesys && msg.isSystem && !msg.genesysMessageId) {
-                      return 'system_to_genesys';
-                    }
-                    // System messages to users (is_system=true, sent_to_genesys=false)
-                    if (msg.isSystem && !msg.sentToGenesys) {
-                      return 'system';
-                    }
-                    // User messages (is_system=false)
-                    return 'user';
-                  };
-
-                  return {
-                    id: msg.id,
-                    content: msg.content || '',
-                    sender: msg.isSystem ? "system" : "user",
-                    createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
-                    sentToGenesys: msg.sentToGenesys || false,
-                    messageType: getMessageType(),
-                  };
-                }).filter((msg): msg is NonNullable<typeof msg> => msg !== null) || []
-              }
-            />
-          )}
-        </Card>
-        {/* Pass fetchMessages down as onNewMessage and disable if chat is closed */}
-        <ChatInput
-          chatId={chatId}
-          onNewMessage={fetchMessages || (() => console.error('fetchMessages is undefined'))}
-          disabled={isChatClosed}
-        />
+    <div className="flex flex-col h-[calc(100vh-57px)] bg-white">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+        <ChatHistory messages={messages} userInitials={userInitials} />
       </div>
-    </ChatSocketProvider>
+      <div className="p-4 border-t bg-gray-50">
+        <ChatInput onSendMessage={handleSendMessage} disabled={isAgentReplying} />
+      </div>
+    </div>
   );
 }
