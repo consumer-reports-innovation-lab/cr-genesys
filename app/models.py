@@ -53,6 +53,7 @@ class Chat(Base):
 
     user = relationship('User', back_populates='chats')
     messages = relationship('Message', back_populates='chat')
+    memories = relationship('Memory', back_populates='chat')
 
 class Message(Base):
     __tablename__ = 'messages'
@@ -72,3 +73,13 @@ class Message(Base):
     message_type = Column(String, default='user', nullable=False)
 
     chat = relationship('Chat', back_populates='messages')
+
+class Memory(Base):
+    __tablename__ = 'memories'
+    id = Column(String, primary_key=True, index=True, default=cuid.cuid)
+    content = Column(Text, nullable=False)
+    chat_id = Column(String, ForeignKey('chats.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
+    
+    chat = relationship('Chat', back_populates='memories')

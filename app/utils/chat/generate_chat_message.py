@@ -2,14 +2,11 @@ import logging
 import os
 import uuid
 import openai
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Optional
 from instructor import patch
-from models import Message, Chat
+from models import Message, Chat, Memory
 from utils.chat.get_chat_messages import get_chat_messages
 from utils.adaptors.convert_messages_to_chat_history import convert_messages_to_chat_history
 from utils.validators.is_markdown import is_markdown
@@ -451,6 +448,74 @@ def call_openai_with_tool(messages):
     )
     return response
 
+def extract_memory_from_message(user_message: str, chat_history: list) -> Optional[str]:
+    """
+    Use LLM to extract potential memories from user messages.
+    Returns the memory content if found, None otherwise.
+    """
+    system_prompt = """You are an intelligent memory extraction system for customer support conversations. Your job is to identify and extract important information that should be remembered for future reference.
+
+Extract memories for:
+- User information (names, contact details, preferences)
+- Vendor names and companies the user mentions
+- Part numbers, model numbers, product names
+- Account information
+- Important facts about the user's situation or context
+
+DO NOT extract:
+- General questions or requests for help
+- Temporary conversation context
+- Simple acknowledgments or greetings
+
+When you extract a memory, format it as a clear, factual statement. Examples:
+- "SharkNinja is a vendor that the user wants to give feedback to"
+- "User's account ID is 12345678"
+- "User prefers email communication over phone calls"
+- "Product model number is XYZ-123"
+
+If no important information should be remembered, respond with exactly: "NO_MEMORY"
+
+User message: "{user_message}"
+
+What memory, if any, should be extracted from this message?"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt.format(user_message=user_message)},
+                *chat_history[-5:],  # Include last 5 messages for context
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=200,
+            temperature=0.3
+        )
+        
+        memory_content = response.choices[0].message.content.strip()
+        
+        if memory_content and memory_content != "NO_MEMORY":
+            logger.info(f"🧠 MEMORY: Extracted memory: {memory_content}")
+            return memory_content
+        else:
+            logger.info("🧠 MEMORY: No memory to extract from this message")
+            return None
+            
+    except Exception as e:
+        logger.error(f"🧠 MEMORY: Error extracting memory: {e}")
+        return None
+
+def get_chat_memories(db: Session, chat_id: str) -> list:
+    """
+    Retrieve all memories for a specific chat.
+    Returns a list of memory content strings.
+    """
+    try:
+        memories = db.query(Memory).filter(Memory.chat_id == chat_id).order_by(Memory.created_at.asc()).all()
+        return [memory.content for memory in memories]
+    except Exception as e:
+        logger.error(f"🧠 MEMORY: Error retrieving memories: {e}")
+        return []
+
 async def generate_chat_message(
     db: Session, 
     chat_id: str, 
@@ -476,6 +541,28 @@ async def generate_chat_message(
     db.add(user_message)
     db.commit()
     db.refresh(user_message)
+    
+    # Extract memory from the user message using LLM
+    try:
+        # Get current chat history for context
+        messages = get_chat_messages(db, chat_id)
+        chat_history = convert_messages_to_chat_history(messages)
+        
+        memory_content = extract_memory_from_message(question, chat_history)
+        
+        if memory_content:
+            # Save the extracted memory to the database
+            memory = Memory(
+                chat_id=chat_id,
+                content=memory_content
+            )
+            db.add(memory)
+            db.commit()
+            logger.info(f"🧠 MEMORY: Saved memory for chat {chat_id}: {memory_content}")
+            
+    except Exception as e:
+        logger.error(f"🧠 MEMORY: Error processing memory extraction: {e}")
+        # Don't fail the entire message processing if memory extraction fails
     
     # Emit the user message
     if sio:
@@ -598,10 +685,20 @@ async def generate_chat_message(
         }
 
         try:
+            # Load memories for this chat to include in the response context
+            memories = get_chat_memories(db, chat_id)
+            memory_context = ""
+            if memories:
+                memory_context = "\n\nRemembered information about this conversation:\n" + "\n".join([f"- {memory}" for memory in memories])
+                logger.info(f"🧠 MEMORY: Including {len(memories)} memories in response context")
+            
+            # Create system message with memory context
+            enhanced_system_prompt = system_prompt + memory_context
+            
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": enhanced_system_prompt},
                     system_tool_hint,
                     *chat_history,
                     {"role": "user", "content": question}

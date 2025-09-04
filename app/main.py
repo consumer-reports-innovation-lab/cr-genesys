@@ -18,6 +18,9 @@ from utils.chat.get_chat_by_id import get_chat_by_id
 from utils.chat.get_chats_by_user_with_latest_message import get_chats_by_user_with_latest_message
 from utils.chat.create_chat import create_chat
 from utils.chat.get_chat_messages import get_chat_messages as _get_chat_messages_from_db
+from utils.chat.initialize_genesys_session import get_available_flows
+from models import Memory
+from schemas import MemorySchema, MemoryCreateSchema
 
 # Create FastAPI app
 fastapi_app = FastAPI(
@@ -84,9 +87,7 @@ def purecloud_permissions():
         raise HTTPException(status_code=500, detail=f"Genesys Cloud error: {e}")
 
 
-from typing import List
 from routes.webhook import router as webhook_router
-from utils.chat.initialize_genesys_session import get_available_flows
 
 # Mount the webhook router
 fastapi_app.include_router(webhook_router)
@@ -152,6 +153,68 @@ async def create_chat_message(chat_id: str, message_data: ChatMessageCreate, cur
     # including user message routing decisions and system responses
     
     return new_message
+
+@fastapi_app.get("/chats/{chat_id}/memories")
+def get_chat_memories(chat_id: str, _=Depends(chat_ownership_guard), db=Depends(get_db)):
+    """
+    Get all memories for a specific chat.
+    """
+    try:
+        memories = db.query(Memory).filter(Memory.chat_id == chat_id).order_by(Memory.created_at.asc()).all()
+        return [
+            MemorySchema(
+                id=memory.id,
+                content=memory.content,
+                chat_id=memory.chat_id,
+                created_at=memory.created_at.isoformat(),
+                updated_at=memory.updated_at.isoformat()
+            ) for memory in memories
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving memories: {e}")
+
+@fastapi_app.post("/chats/{chat_id}/memories")
+def create_chat_memory(chat_id: str, memory_data: MemoryCreateSchema, _=Depends(chat_ownership_guard), db=Depends(get_db)):
+    """
+    Create a new memory for a specific chat.
+    """
+    try:
+        memory = Memory(
+            chat_id=chat_id,
+            content=memory_data.content
+        )
+        db.add(memory)
+        db.commit()
+        db.refresh(memory)
+        
+        return MemorySchema(
+            id=memory.id,
+            content=memory.content,
+            chat_id=memory.chat_id,
+            created_at=memory.created_at.isoformat(),
+            updated_at=memory.updated_at.isoformat()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating memory: {e}")
+
+@fastapi_app.delete("/chats/{chat_id}/memories/{memory_id}")
+def delete_chat_memory(chat_id: str, memory_id: str, _=Depends(chat_ownership_guard), db=Depends(get_db)):
+    """
+    Delete a specific memory from a chat.
+    """
+    try:
+        memory = db.query(Memory).filter(Memory.id == memory_id, Memory.chat_id == chat_id).first()
+        if not memory:
+            raise HTTPException(status_code=404, detail="Memory not found")
+        
+        db.delete(memory)
+        db.commit()
+        
+        return {"message": "Memory deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting memory: {e}")
 
 @fastapi_app.get("/genesys/flows")
 def list_flows():

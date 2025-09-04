@@ -20,3 +20,13 @@ class ChatSchema(BaseModel):
 class ChatWithLatestMessageSchema(BaseModel):
     chat: ChatSchema
     latest_message: Optional[MessageSchema]
+
+class MemorySchema(BaseModel):
+    id: str
+    content: str
+    chat_id: str
+    created_at: str
+    updated_at: str
+
+class MemoryCreateSchema(BaseModel):
+    content: str
