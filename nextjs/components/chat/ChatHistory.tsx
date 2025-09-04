@@ -16,13 +16,12 @@ interface ChatHistoryProps {
   userInitials: string;
 }
 
-// --- NEW ANIMATION COMPONENT (No Framer Motion) ---
 const SmoothReveal = ({ text }: { text: string }) => {
   const words = useMemo(() => text.split(' '), [text]);
   const [visibleWords, setVisibleWords] = useState(0);
 
   useEffect(() => {
-    setVisibleWords(0); // Reset on text change
+    setVisibleWords(0);
     const timer = setInterval(() => {
       setVisibleWords(prev => {
         if (prev < words.length) {
@@ -31,7 +30,7 @@ const SmoothReveal = ({ text }: { text: string }) => {
         clearInterval(timer);
         return prev;
       });
-    }, 60); // Adjust word reveal speed here
+    }, 60); 
 
     return () => clearInterval(timer);
   }, [text, words.length]);
@@ -50,7 +49,6 @@ const SmoothReveal = ({ text }: { text: string }) => {
   );
 };
 
-
 const ThinkingIndicator = () => (
   <div className="flex items-center space-x-1 p-2">
     <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
@@ -66,8 +64,8 @@ const AgentThread = ({ messages }: { messages: ChatMessage[] }) => {
 
   const getAgentInfo = (sender: string) => {
     switch (sender) {
-      case 'AskCR': return { name: 'Your CR Agent', color: 'bg-green-600', initial: 'CR' };
-      case 'Genesys': return { name: 'Sharkninja', color: 'bg-purple-500', initial: 'S' };
+      case 'AskCR': return { name: 'Your Agent', color: 'bg-green-600', initial: 'CR' };
+      case 'Genesys': return { name: 'Sharkninja System', color: 'bg-green-600', initial: 'S' };
       default: return { name: 'Agent', color: 'bg-gray-500', initial: 'A' };
     }
   };

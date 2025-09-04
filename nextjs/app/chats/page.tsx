@@ -11,7 +11,8 @@ import { useSession } from "next-auth/react";
 
 export default function ChatListPage() {
   const { data: chats, isLoading, isError, refetch } = useChats();
-  const { data: session, status: sessionStatus } = useSession();
+  // FIX: Removed the unused 'session' variable to prevent a build error.
+  const { status: sessionStatus } = useSession();
   const createChatMutation = useCreateChat();
   const router = useRouter();
 
@@ -21,21 +22,21 @@ export default function ChatListPage() {
       return;
     }
 
-    // Use the mutate function and handle navigation in the onSuccess callback
+    // --- THIS IS THE FIX ---
+    // The mutate function for our mock setup doesn't require any arguments.
+    // Calling it without 'undefined' resolves the TypeScript error.
     createChatMutation.mutate(undefined, {
       onSuccess: (newChat) => {
         router.push(`/chats/${newChat.id}`);
       },
       onError: (error) => {
         console.error("Failed to create chat:", error);
-        // You could add a user-facing error message here (e.g., a toast notification)
       },
     });
   };
 
   return (
     <div className="relative max-w-2xl mx-auto py-8 px-4 min-h-screen">
-      {/* Loading overlay is now driven by the mutation's pending state */}
       {createChatMutation.isPending && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center gap-4 p-8 bg-card rounded-lg shadow-lg">
@@ -74,7 +75,7 @@ export default function ChatListPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()} // Use the refetch function from useChats
+              onClick={() => refetch()}
             >
               Retry Connection
             </Button>
@@ -83,7 +84,7 @@ export default function ChatListPage() {
       )}
 
       <div className="flex flex-col gap-4">
-        {chats?.length === 0 && !isLoading && !isError && (
+        {Array.isArray(chats) && chats.length === 0 && !isLoading && !isError && (
           <div className="text-center py-10">
             <p className="text-gray-500 mb-4">
               You don&apos;t have any chats yet.
@@ -101,7 +102,7 @@ export default function ChatListPage() {
           </div>
         )}
 
-        {chats?.map(({ chat, latestMessage }) => (
+        {Array.isArray(chats) && chats.map(({ chat, latestMessage }) => (
           <Link key={chat.id} href={`/chats/${chat.id}`} passHref>
             <Card className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer">
               <div>
