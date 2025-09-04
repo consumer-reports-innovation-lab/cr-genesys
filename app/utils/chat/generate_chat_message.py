@@ -542,7 +542,7 @@ async def generate_chat_message(
     db.commit()
     db.refresh(user_message)
     
-    # Extract memory from the user message using LLM
+    # Extract memory from the user message using LLM (in separate transaction to avoid conflicts)
     try:
         # Get current chat history for context
         messages = get_chat_messages(db, chat_id)
@@ -551,14 +551,24 @@ async def generate_chat_message(
         memory_content = extract_memory_from_message(question, chat_history)
         
         if memory_content:
-            # Save the extracted memory to the database
-            memory = Memory(
-                chat_id=chat_id,
-                content=memory_content
-            )
-            db.add(memory)
-            db.commit()
-            logger.info(f"🧠 MEMORY: Saved memory for chat {chat_id}: {memory_content}")
+            # Use a separate database session for memory operations to avoid transaction conflicts
+            from utils.db import get_db
+            memory_db = next(get_db())
+            try:
+                # Save the extracted memory to the database
+                memory = Memory(
+                    chat_id=chat_id,
+                    content=memory_content
+                )
+                memory_db.add(memory)
+                memory_db.commit()
+                logger.info(f"🧠 MEMORY: Saved memory for chat {chat_id}: {memory_content}")
+            except Exception as memory_error:
+                memory_db.rollback()
+                logger.error(f"🧠 MEMORY: Error saving memory to database: {memory_error}")
+                raise memory_error
+            finally:
+                memory_db.close()
             
     except Exception as e:
         logger.error(f"🧠 MEMORY: Error processing memory extraction: {e}")
