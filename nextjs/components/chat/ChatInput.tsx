@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Input } from "@/components/ui/input";
+import TextareaAutosize from 'react-textarea-autosize';
 import { Button } from "@/components/ui/button";
 import { SendHorizonal } from "lucide-react";
 
@@ -12,8 +12,7 @@ interface ChatInputProps {
 export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState("");
   
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSend = async () => {
     if (!message.trim() || disabled) return;
     
     // Keep the original message to send, then clear the input
@@ -22,14 +21,24 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
     await onSendMessage(messageToSend);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <form onSubmit={handleSend} className="flex gap-2 sm:gap-3 items-center w-full">
-      <Input
+    <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2 sm:gap-3 items-end w-full">
+      <TextareaAutosize
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Send a message..."
         disabled={disabled}
-        className="flex-1 bg-white h-10 rounded-full px-4 text-sm sm:text-base"
+        minRows={1}
+        maxRows={5}
+        className="flex-1 resize-none rounded-full border border-input bg-white px-4 py-2 text-sm sm:text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       />
       <Button
         type="submit"

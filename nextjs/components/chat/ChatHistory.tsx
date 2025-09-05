@@ -60,7 +60,7 @@ const ThinkingIndicator = () => (
 );
 
 const ConversingAvatars = ({ onClick }: { onClick: () => void }) => {
-  const statusText = "Chatting with Sharkninja...";
+  const statusText = "Chatting with Made In...";
 
   return (
     <div className="flex items-center gap-3 cursor-pointer" onClick={onClick}>
@@ -78,7 +78,7 @@ const ConversingAvatars = ({ onClick }: { onClick: () => void }) => {
             transition={{ duration: 1.5, repeat: Infinity, repeatType: "mirror", delay: 0.2 }}
         >
             <Avatar className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-white">
-                <AvatarFallback className="bg-blue-600 text-white text-xs">S</AvatarFallback>
+                <AvatarFallback className="bg-blue-600 text-white text-xs">MI</AvatarFallback>
             </Avatar>
         </motion.div>
       </div>
@@ -107,7 +107,7 @@ const CollapsedThreadSummary = ({ messages, onClick }: { messages: ChatMessage[]
           <AvatarFallback className="bg-green-600 text-white text-xs">CR</AvatarFallback>
         </Avatar>
         <Avatar className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-white">
-          <AvatarFallback className="bg-blue-600 text-white text-xs">S</AvatarFallback>
+          <AvatarFallback className="bg-blue-600 text-white text-xs">MI</AvatarFallback>
         </Avatar>
       </div>
       <div className="text-xs sm:text-sm text-gray-500">
@@ -119,24 +119,21 @@ const CollapsedThreadSummary = ({ messages, onClick }: { messages: ChatMessage[]
 
 interface AgentThreadProps {
   messages: ChatMessage[];
-  isAgentReplying: boolean;
-  isLastThread?: boolean;
+  isCurrentlyActive: boolean;
 }
 
-const AgentThread = ({ messages, isAgentReplying, isLastThread = false }: AgentThreadProps) => {
+const AgentThread = ({ messages, isCurrentlyActive }: AgentThreadProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const getAgentInfo = (sender: string) => {
     switch (sender) {
       case 'AskCR': return { name: 'Your Agent', color: 'bg-green-600', initial: 'CR' };
-      case 'Genesys': return { name: 'Sharkninja System', color: 'bg-blue-600', initial: 'S' };
+      case 'Genesys': return { name: 'Made In System', color: 'bg-blue-600', initial: 'MI' };
       default: return { name: 'Agent', color: 'bg-gray-500', initial: 'A' };
     }
   };
   
-
   if (messages.length === 0) return null;
-
 
   return (
     <div className="pl-8 sm:pl-12 py-2">
@@ -149,7 +146,7 @@ const AgentThread = ({ messages, isAgentReplying, isLastThread = false }: AgentT
         </button>
         
         {!isOpen ? (
-          isAgentReplying && isLastThread ? (
+          isCurrentlyActive ? (
             <ConversingAvatars onClick={() => setIsOpen(true)} />
           ) : (
             <CollapsedThreadSummary messages={messages} onClick={() => setIsOpen(true)} />
@@ -182,7 +179,7 @@ const AgentThread = ({ messages, isAgentReplying, isLastThread = false }: AgentT
 
 export function ChatHistory({ messages, userInitials, isAgentReplying = false }: ChatHistoryProps) {
   if (messages.length === 0) {
-    return <div className="flex-1 flex items-center justify-center text-gray-400">Send a message to begin</div>;
+    return <div className="h-full flex items-center justify-center text-gray-400">Send a message to begin</div>;
   }
   
   const groupedMessages: (ChatMessage | { type: 'thread'; messages: ChatMessage[] })[] = [];
@@ -205,11 +202,11 @@ export function ChatHistory({ messages, userInitials, isAgentReplying = false }:
   }
 
   return (
-    <div className="flex flex-col gap-2 p-2 sm:p-4">
+    <div className="flex flex-col gap-2">
       {groupedMessages.map((item, index) => {
         if ('type' in item && item.type === 'thread') {
-          const isLastThread = index === groupedMessages.length - 1;
-          return <AgentThread key={`thread-${index}`} messages={item.messages} isAgentReplying={isAgentReplying} isLastThread={isLastThread} />;
+          const isCurrentlyActive = isAgentReplying && index === groupedMessages.length - 1;
+          return <AgentThread key={`thread-${index}`} messages={item.messages} isCurrentlyActive={isCurrentlyActive} />;
         }
         
         const msg = item as ChatMessage;

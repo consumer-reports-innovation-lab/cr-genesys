@@ -47,7 +47,7 @@ export const useChats = () => {
       isLoading: false,
       isError: false,
       error: null,
-      refetch: () => console.log("Mock refetch called."),
+      refetch: () => {},
     };
   }
   

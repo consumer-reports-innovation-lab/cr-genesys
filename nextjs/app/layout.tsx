@@ -29,14 +29,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col`}
         suppressHydrationWarning
       >
         <ReactQueryProvider>
           <Providers>
             <SignOutHandler>
               <ClientAuthHeader />
-              <main className="min-h-screen">
+              <main className="flex-1 overflow-y-auto">
                 {children}
               </main>
             </SignOutHandler>

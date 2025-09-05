@@ -1,11 +1,30 @@
 // cr-genesys/nextjs/schemas.ts
-import type { Chat as PrismaChat, Message as PrismaMessage } from "@prisma/client";
 
-export type Message = PrismaMessage;
+export type Message = {
+  id: string;
+  content: string;
+  chatId: string;
+  isSystem: boolean;
+  isMarkdown: boolean;
+  sentToGenesys: boolean;
+  genesysMessageId: string | null;
+  messageType: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-export type Chat = PrismaChat;
+export type Chat = {
+  id: string;
+  title: string | null;
+  status: 'OPEN' | 'CLOSED';
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  genesysOpenMessageSessionId: string | null;
+  genesysOpenMessageActive: boolean;
+};
 
 export type ChatWithLatestMessage = {
-  chat: PrismaChat;
-  latestMessage: PrismaMessage | null;
+  chat: Chat;
+  latestMessage: Message | null;
 };

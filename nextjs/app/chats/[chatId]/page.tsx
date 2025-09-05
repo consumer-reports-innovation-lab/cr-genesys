@@ -94,46 +94,46 @@ export default function ChatPage() {
     if (conversationState === 'start') {
       setConversationState('awaiting_model_number');
 
-      await agentReply("AskCR", "On it! Let me connect with Sharkninja's support system for you.", 2000);
+      await agentReply("AskCR", "On it! Let me connect with Made In's support system for you.", 2000);
       await agentReply("AskCR", "Okay, I'm connected. Submitting your feedback about the packaging.", 1800);
       
-      await agentReply("Genesys", "Thank you for contacting Sharkninja. To process your feedback, please provide the customer's full name and email address for verification.", 3000);
+      await agentReply("Genesys", "Thank you for contacting Made In. To process your feedback, please provide the customer's full name and email address for verification.", 3000);
       
       await agentReply("AskCR", "Of course. The customer is Kennion Gubler, email kennion.gubler@example.com.", 2000);
       
       await agentReply("Genesys", "Verification successful. Please provide the product name and purchase date.", 3500);
 
-      await agentReply("AskCR", "The product is a 'Sharkninja Pro Blender'. Checking purchase history... purchased on August 15, 2025.", 2500);
+      await agentReply("AskCR", "The product is a 'Made In Non-Stick Pan'. Checking purchase history... purchased on August 15, 2025.", 2500);
       
       await agentReply("Genesys", "Information confirmed. For feedback related to `Packaging`, a product model number is required for our engineering and logistics teams. Please provide the model number.", 4000);
 
       await agentReply("AskCR", "Got it. I don't have the model number in the purchase record. I'll ask the user for it now.", 1500);
 
-      await systemReplyToUser("The Sharkninja system needs a model number to file the feedback. Could you provide it for me, please? It's usually on the bottom of the blender.");
+      await systemReplyToUser("The Made In system needs a model number to file the feedback. Could you provide it for me, please? It's usually on the bottom of the pan.");
 
     } else if (conversationState === 'awaiting_model_number') {
       setConversationState('completed');
       
       await agentReply("AskCR", `Perfect, thank you! I'll pass this along. The model number is ${content}.`, 2500);
       
-      const ticketId = `SN-${Math.floor(Math.random() * 90000) + 10000}`;
+      const ticketId = `MI-${Math.floor(Math.random() * 90000) + 10000}`;
       await agentReply("Genesys", `Model number ${content} accepted. Your feedback has been logged. Your ticket ID is ${ticketId}. Do you require further assistance?`, 3500);
       
       await agentReply("AskCR", "That's everything, thank you for your help!", 2000);
 
-      await systemReplyToUser(`All set! Your feedback is officially submitted to Sharkninja. The reference number is ${ticketId}. Thanks for helping me out! ✨`);
+      await systemReplyToUser(`All set! Your feedback is officially submitted to Made In. The reference number is ${ticketId}. Thanks for helping me out! ✨`);
     }
     setIsAgentReplying(false);
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-49px)] bg-white">
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-        <div className="pt-4 pb-32 sm:pb-24">
-          <ChatHistory messages={messages} userInitials={userInitials} isAgentReplying={isAgentReplying} />
-        </div>
+    <div className="flex flex-col h-full bg-white">
+      {/* Container for the chat history */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-12">
+        <ChatHistory messages={messages} userInitials={userInitials} isAgentReplying={isAgentReplying} />
       </div>
-      <div className="px-3 py-2 sm:px-4 sm:py-3 border-t bg-gray-50">
+      {/* Container for the chat input */}
+      <div className="px-4 pt-4 pb-12 border-t bg-gray-50">
         <ChatInput onSendMessage={handleSendMessage} disabled={isAgentReplying} />
       </div>
     </div>
