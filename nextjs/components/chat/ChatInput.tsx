@@ -23,13 +23,13 @@ export function ChatInput({ onSendMessage, disabled = false }: ChatInputProps) {
   };
 
   return (
-    <form onSubmit={handleSend} className="flex gap-3 items-center w-full">
+    <form onSubmit={handleSend} className="flex gap-2 sm:gap-3 items-center w-full">
       <Input
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Send a message..."
         disabled={disabled}
-        className="flex-1 bg-white h-10 rounded-full px-4"
+        className="flex-1 bg-white h-10 rounded-full px-4 text-sm sm:text-base"
       />
       <Button
         type="submit"

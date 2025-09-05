@@ -127,11 +127,13 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-57px)] bg-white">
+    <div className="flex flex-col h-[calc(100vh-49px)] bg-white">
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-        <ChatHistory messages={messages} userInitials={userInitials} />
+        <div className="pt-4 pb-32 sm:pb-24">
+          <ChatHistory messages={messages} userInitials={userInitials} isAgentReplying={isAgentReplying} />
+        </div>
       </div>
-      <div className="p-4 border-t bg-gray-50">
+      <div className="px-3 py-2 sm:px-4 sm:py-3 border-t bg-gray-50">
         <ChatInput onSendMessage={handleSendMessage} disabled={isAgentReplying} />
       </div>
     </div>
