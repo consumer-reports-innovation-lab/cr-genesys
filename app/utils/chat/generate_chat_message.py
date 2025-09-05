@@ -453,25 +453,35 @@ def extract_memory_from_message(user_message: str, chat_history: list) -> Option
     Use LLM to extract potential memories from user messages.
     Returns the memory content if found, None otherwise.
     """
-    system_prompt = """You are an intelligent memory extraction system for customer support conversations. Your job is to identify and extract important information that should be remembered for future reference.
+    system_prompt = """You are an intelligent memory extraction system for customer support conversations. Your job is to identify and extract important information that should be remembered for future reference to avoid asking users to repeat themselves.
 
 Extract memories for:
-- User information (names, contact details, preferences)
-- Vendor names and companies the user mentions
-- Part numbers, model numbers, product names
-- Account information
-- Important facts about the user's situation or context
+- User information (names, contact details, communication preferences)
+- Vendor names, company names, and brands the user mentions
+- Part numbers, model numbers, product names, and product categories
+- Account information (IDs, membership details, subscription info)
+- User preferences (preferred contact methods, times, specific needs)
+- Purchase history or ownership details
+- Technical issues or problems the user has experienced
+- Important facts about the user's situation, context, or goals
+- Service requests or desired outcomes
 
 DO NOT extract:
-- General questions or requests for help
-- Temporary conversation context
-- Simple acknowledgments or greetings
+- General questions or requests for help without specific details
+- Temporary conversation context (like "I'm calling now")
+- Simple acknowledgments, greetings, or politeness phrases
+- Information that's not useful for future conversations
 
-When you extract a memory, format it as a clear, factual statement. Examples:
+When you extract a memory, format it as a clear, factual statement that will be useful for future responses. Examples:
 - "SharkNinja is a vendor that the user wants to give feedback to"
-- "User's account ID is 12345678"
+- "User's account ID is 12345678" 
 - "User prefers email communication over phone calls"
 - "Product model number is XYZ-123"
+- "User owns a Vitamix blender that has been making loud noises"
+- "User is interested in getting a refund for their recent purchase"
+- "User's subscription expires in March 2024"
+
+Think: Will this information help provide better service in future conversations? If yes, extract it.
 
 If no important information should be remembered, respond with exactly: "NO_MEMORY"
 
@@ -699,7 +709,18 @@ async def generate_chat_message(
             memories = get_chat_memories(db, chat_id)
             memory_context = ""
             if memories:
-                memory_context = "\n\nRemembered information about this conversation:\n" + "\n".join([f"- {memory}" for memory in memories])
+                memory_context = (
+                    "\n\n=== IMPORTANT: USE REMEMBERED INFORMATION ===\n"
+                    "The following information has been remembered from previous parts of this conversation. "
+                    "ALWAYS prefer using this remembered information instead of asking the user to repeat details:\n\n"
+                    + "\n".join([f"- {memory}" for memory in memories]) +
+                    "\n\nInstructions for using memories:\n"
+                    "• If the user asks about a vendor, product, or service mentioned in memories, reference that information directly\n"
+                    "• If memories contain account IDs, contact preferences, or other user details, use them when relevant\n"
+                    "• Do NOT ask users to repeat information that's already in memories\n"
+                    "• When helping with requests, proactively use remembered context to provide better assistance\n"
+                    "• If making recommendations or providing help, consider the user's previously mentioned preferences and vendors\n"
+                )
                 logger.info(f"🧠 MEMORY: Including {len(memories)} memories in response context")
             
             # Create system message with memory context
